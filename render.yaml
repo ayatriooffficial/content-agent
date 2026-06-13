@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: blog-automation-backend
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: MONGO_URI
+        sync: false
+        placeholder: "Your MongoDB Atlas connection URI"
+      - key: GROQ_API_KEY
+        sync: false
+        placeholder: "Your Groq API key"
+      - key: FRONTEND_URL
+        sync: false
+        placeholder: "Your deployed Netlify frontend URL"
