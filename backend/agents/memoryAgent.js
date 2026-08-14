@@ -18,7 +18,7 @@ async function memoryAgent(domain) {
     memory = {
       generatedTitles: existingBlogs.map(b => b.title),
       usedKeywords: existingBlogs.flatMap(b => b.tags || []),
-      usedCategories: [...new Set(existingBlogs.map(b => b.category).filter(Boolean))],
+      usedCategories: existingBlogs.map(b => b.category).filter(Boolean),
       avoidTopics: [],
       strategyHistory: [],
       successfulTopics: [],
@@ -30,6 +30,9 @@ async function memoryAgent(domain) {
       researchInsights: [],
     };
   }
+
+  // Build locationHistory from the locationPatterns array (already in the schema)
+  const locationHistory = (memory.locationPatterns || []).map(lp => lp.location).filter(Boolean);
 
   return {
     previousTitles: memory.generatedTitles || [],
@@ -44,12 +47,13 @@ async function memoryAgent(domain) {
     competitorPatterns: memory.competitorPatterns || [],
     emotionalStrategies: memory.emotionalStrategies || [],
     researchInsights: memory.researchInsights || [],
+    locationHistory,  // ✅ Fixed: now populated from locationPatterns
     totalBlogsGenerated: (memory.generatedTitles || []).length,
     methodology: {
       approach: "MongoDB-Backed Long-Term Memory System",
       principles: ["Content Deduplication", "Strategy Evolution Tracking", "Successful Pattern Reinforcement"],
       reasoning: `Retrieved ${(memory.generatedTitles || []).length} historical entries for domain "${domainKey}". Memory prevents repetitive content and reinforces successful emotional strategies.`,
-      dataStored: ["Blog titles", "Keywords", "Hooks", "Persona insights", "Competitor patterns", "Emotional strategies", "Research insights"]
+      dataStored: ["Blog titles", "Keywords", "Hooks", "Persona insights", "Competitor patterns", "Emotional strategies", "Research insights", "Location history"]
     }
   };
 }
@@ -78,15 +82,28 @@ async function updateMemory(domain, blogTitle, keywords, category, strategy, add
       competitorPatterns: [],
       emotionalStrategies: [],
       researchInsights: [],
+      locationPatterns: [],
     });
   }
 
   memory.generatedTitles.push(blogTitle);
   memory.usedKeywords.push(...(keywords || []));
-  if (category && !memory.usedCategories.includes(category)) {
+  if (category) {
     memory.usedCategories.push(category);
   }
   if (strategy) memory.strategyHistory.push(strategy);
+
+  // ✅ Fixed: Save the target location used in this run for rotation tracking
+  if (additionalData.targetLocation) {
+    memory.locationPatterns = memory.locationPatterns || [];
+    memory.locationPatterns.push({
+      location: additionalData.targetLocation,
+      audienceCategory: additionalData.audienceCategory || "",
+      successfulTopics: keywords || [],
+      searchPatterns: [],
+      timestamp: new Date()
+    });
+  }
 
   // Store additional learning data
   if (additionalData.hook) {

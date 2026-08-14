@@ -11,6 +11,7 @@
  */
 const { groqGenerate } = require("./clients/groqClient");
 const { PRIMARY_COMPETITORS, getCompetitorContext } = require("../config/competitors");
+const safeParseJSON = require("./jsonParser/jsonParser");
 
 async function competitorAgent(competitorWebsites, personaProfile, researchData) {
   // Use hardcoded competitors + any additional ones passed in
@@ -19,7 +20,11 @@ async function competitorAgent(competitorWebsites, personaProfile, researchData)
     !PRIMARY_COMPETITORS.some(pc => pc.url.includes(c) || c.includes(pc.url))
   );
 
-  const systemPrompt = `You are a professional competitive intelligence strategist specializing in the Indian Accounting & Finance Education market. You analyze competitors through both strategic (SWOT) and psychological (emotional/trust gaps) lenses. Focus on actionable differentiation opportunities.`;
+  const systemPrompt = `You are a professional competitive intelligence strategist specializing in the Indian Accounting & Finance Education market. You analyze competitors through both strategic (SWOT) and psychological (emotional/trust gaps) lenses. Focus on actionable differentiation opportunities.
+
+CRITICAL RULES:
+- Output ONLY valid JSON. No markdown, no prose, no code fences.
+- All array fields must be actual JSON arrays of strings.`;
 
   const userPrompt = `Perform a comprehensive competitive intelligence analysis for the Indian accounting education market.
 
@@ -45,52 +50,64 @@ Perform analysis using these PROFESSIONAL METHODOLOGIES:
 4. SEO Gap Analysis
 5. Messaging Weaknesses (where their copy fails psychologically)
 
-Respond in this EXACT format:
+Output EXACTLY this JSON structure (no extra text):
+{
+  "swot": {
+    "strengths": ["strength 1", "strength 2"],
+    "weaknesses": ["weakness 1", "weakness 2"],
+    "opportunities": ["opportunity 1", "opportunity 2"],
+    "threats": ["threat 1", "threat 2"]
+  },
+  "emotionalGaps": ["gap 1", "gap 2", "gap 3", "gap 4", "gap 5", "gap 6"],
+  "trustGaps": ["gap 1", "gap 2", "gap 3", "gap 4", "gap 5", "gap 6"],
+  "seoGaps": ["gap 1", "gap 2", "gap 3", "gap 4", "gap 5", "gap 6"],
+  "positioningAnalysis": "4-5 sentences on how competitors position themselves and the gap",
+  "messagingWeaknesses": ["weakness 1", "weakness 2", "weakness 3", "weakness 4", "weakness 5", "weakness 6"],
+  "competitorBlindSpots": ["blind spot 1", "blind spot 2", "blind spot 3", "blind spot 4", "blind spot 5", "blind spot 6"],
+  "differentiationStrategy": "4-5 sentences on exactly how to beat them with specific tactics",
+  "contentOpportunities": ["opportunity 1", "opportunity 2", "opportunity 3", "opportunity 4", "opportunity 5", "opportunity 6"]
+}`;
 
-[BEGIN_ANALYSIS]
-SWOT_STRENGTHS: (6 competitor strengths, comma-separated)
-SWOT_WEAKNESSES: (6 competitor weaknesses, comma-separated)
-SWOT_OPPORTUNITIES: (6 market opportunities, comma-separated)
-SWOT_THREATS: (4 market threats, comma-separated)
-EMOTIONAL_GAPS: (6 emotions competitors fail to address, comma-separated)
-TRUST_GAPS: (6 ways competitors fail to build trust, comma-separated)
-SEO_GAPS: (6 SEO keyword/content gaps, comma-separated)
-POSITIONING_ANALYSIS: (4-5 sentences on how competitors position themselves and the gap)
-MESSAGING_WEAKNESSES: (6 messaging failures, comma-separated)
-COMPETITOR_BLIND_SPOTS: (6 things competitors completely miss, comma-separated)
-DIFFERENTIATION_STRATEGY: (4-5 sentences on exactly how to beat them with specific tactics)
-CONTENT_OPPORTUNITIES: (6 content topics competitors ignore, comma-separated)
-[END_ANALYSIS]`;
-
-  let result = "";
-  try {
-    result = await groqGenerate(systemPrompt, userPrompt, { temperature: 0.8, maxTokens: 4000 });
-  } catch (err) {
-    console.error("Competitor Agent — Groq generation failed:", err.message);
-    return buildFallbackCompetitorAnalysis(personaProfile);
-  }
-
-  const block = extractBlock(result, "[BEGIN_ANALYSIS]", "[END_ANALYSIS]") || result;
-
-  if (!block || block.length < 50) {
-    return buildFallbackCompetitorAnalysis(personaProfile);
+  let resultJSON = null;
+  
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      console.log(`  [Competitor Agent] Extracting JSON (Attempt ${attempt})...`);
+      const rawResult = await groqGenerate(systemPrompt, userPrompt, { 
+        model: "llama-3.1-8b-instant",  // Fast small model — structured JSON output task
+        temperature: 0.5, 
+        maxTokens: 1500  // JSON structure is ~700 tokens
+      });
+      
+      resultJSON = safeParseJSON(rawResult);
+      if (resultJSON && resultJSON.swot && Array.isArray(resultJSON.emotionalGaps)) {
+        break; // Successfully parsed
+      } else {
+        throw new Error("Invalid or missing JSON fields");
+      }
+    } catch (err) {
+      console.warn(`  [Competitor Agent] JSON Extraction failed on attempt ${attempt}: ${err.message}`);
+      if (attempt === 2) {
+        return buildFallbackCompetitorAnalysis(personaProfile);
+      }
+    }
   }
 
   return {
     swot: {
-      strengths: extractList(block, "SWOT_STRENGTHS"),
-      weaknesses: extractList(block, "SWOT_WEAKNESSES"),
-      opportunities: extractList(block, "SWOT_OPPORTUNITIES"),
-      threats: extractList(block, "SWOT_THREATS")
+      strengths: Array.isArray(resultJSON.swot?.strengths) ? resultJSON.swot.strengths : [],
+      weaknesses: Array.isArray(resultJSON.swot?.weaknesses) ? resultJSON.swot.weaknesses : [],
+      opportunities: Array.isArray(resultJSON.swot?.opportunities) ? resultJSON.swot.opportunities : [],
+      threats: Array.isArray(resultJSON.swot?.threats) ? resultJSON.swot.threats : []
     },
-    emotionalGaps: extractList(block, "EMOTIONAL_GAPS"),
-    trustGaps: extractList(block, "TRUST_GAPS"),
-    seoGaps: extractList(block, "SEO_GAPS"),
-    positioningAnalysis: extractField(block, "POSITIONING_ANALYSIS"),
-    messagingWeaknesses: extractList(block, "MESSAGING_WEAKNESSES"),
-    competitorBlindSpots: extractList(block, "COMPETITOR_BLIND_SPOTS"),
-    strategyNotes: extractField(block, "DIFFERENTIATION_STRATEGY"),
-    contentOpportunities: extractList(block, "CONTENT_OPPORTUNITIES"),
+    emotionalGaps: Array.isArray(resultJSON.emotionalGaps) ? resultJSON.emotionalGaps : [],
+    trustGaps: Array.isArray(resultJSON.trustGaps) ? resultJSON.trustGaps : [],
+    seoGaps: Array.isArray(resultJSON.seoGaps) ? resultJSON.seoGaps : [],
+    positioningAnalysis: resultJSON.positioningAnalysis || "",
+    messagingWeaknesses: Array.isArray(resultJSON.messagingWeaknesses) ? resultJSON.messagingWeaknesses : [],
+    competitorBlindSpots: Array.isArray(resultJSON.competitorBlindSpots) ? resultJSON.competitorBlindSpots : [],
+    strategyNotes: resultJSON.differentiationStrategy || "",
+    contentOpportunities: Array.isArray(resultJSON.contentOpportunities) ? resultJSON.contentOpportunities : [],
     analyzedWebsites: PRIMARY_COMPETITORS.map(c => `${c.name} (${c.url})`),
     methodology: {
       principlesUsed: ["SWOT Analysis", "Emotional Gap Analysis", "Trust Gap Analysis", "SEO Gap Analysis", "Positioning Analysis", "Messaging Weakness Analysis"],
@@ -99,7 +116,7 @@ CONTENT_OPPORTUNITIES: (6 content topics competitors ignore, comma-separated)
         fallback: "Groq (Llama 3.3 70B)"
       },
       competitorsAnalyzed: PRIMARY_COMPETITORS.map(c => c.name),
-      approach: "7-framework professional competitive intelligence powered by Groq.",
+      approach: "7-framework professional competitive intelligence powered by Groq (JSON Enforced).",
       reasoning: `Analyzed ${PRIMARY_COMPETITORS.length} hardcoded competitors. Used analytical reasoning to find messaging weaknesses and emotional gaps they miss.`
     }
   };
@@ -121,6 +138,7 @@ function buildFallbackCompetitorAnalysis(personaProfile) {
     competitorBlindSpots: ["Career guidance", "Confidence building"],
     strategyNotes: "Focus on emotional connection and practical outcomes.",
     contentOpportunities: ["Interview anxiety content", "Practical skill demonstrations"],
+    analyzedWebsites: PRIMARY_COMPETITORS.map(c => `${c.name} (${c.url})`),
     methodology: {
       principlesUsed: ["SWOT Analysis", "Emotional Gap Analysis"],
       model: "Fallback (Primary Models Unavailable)",
@@ -128,25 +146,6 @@ function buildFallbackCompetitorAnalysis(personaProfile) {
       approach: "Fallback competitive intelligence based on stored patterns."
     }
   };
-}
-
-function extractBlock(text, start, end) {
-  if (!text) return null;
-  const s = text.indexOf(start);
-  const e = text.indexOf(end, s + start.length);
-  if (s === -1 || e === -1) return null;
-  return text.substring(s + start.length, e).trim();
-}
-
-function extractField(block, key) {
-  if (!block) return "";
-  const match = block.match(new RegExp(`${key}:\\s*(.+)`, "i"));
-  return match ? match[1].trim() : "";
-}
-
-function extractList(block, key) {
-  const val = extractField(block, key);
-  return val ? val.split(",").map(s => s.trim()).filter(s => s.length > 0) : [];
 }
 
 module.exports = competitorAgent;

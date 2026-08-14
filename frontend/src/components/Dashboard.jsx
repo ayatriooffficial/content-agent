@@ -11,6 +11,8 @@ const AGENT_STEPS = [
   { key: "competitor", label: "Competitor Agent", icon: "⚔️", desc: "7-framework analysis (DeepSeek R1)" },
   { key: "memory", label: "Memory Agent", icon: "🧠", desc: "Self-learning memory query" },
   { key: "orchestrator", label: "Orchestrator", icon: "🎯", desc: "5-source intelligence synthesis" },
+  { key: "content_calendar", label: "Content Calendar", icon: "📅", desc: "15-day multi-stream calendar generation" },
+  { key: "calendar_approval", label: "Needs Admin Approval", icon: "⏳", desc: "Approval gate before slot-level content generation" },
   { key: "generator", label: "Content Generator", icon: "✍️", desc: "Psychology-driven content (Groq)" },
   { key: "validation", label: "Validation Layer", icon: "✅", desc: "7-dimension quality assessment" },
 ];
@@ -237,11 +239,13 @@ export default function Dashboard() {
               const isExpand = expandedAgent === agent.key;
               const isActive = status === "running";
               const isDone = status === "done";
+              const isAwaitingApproval = status === "awaiting_approval";
               return (
                 <div key={agent.key}>
                   <div onClick={() => data && setExpandedAgent(isExpand ? null : agent.key)}
                     className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${
                       isDone ? "bg-white border border-emerald-100 cursor-pointer hover:bg-emerald-50" :
+                      isAwaitingApproval ? "bg-amber-50 border border-amber-200 cursor-pointer hover:bg-amber-100" :
                       isActive ? "bg-white border border-emerald-200 shadow-sm" :
                       "bg-white/50 border border-transparent opacity-40"
                     }`}>
@@ -252,6 +256,7 @@ export default function Dashboard() {
                     </div>
                     {isActive && <div className="w-3.5 h-3.5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />}
                     {isDone && <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-3 py-1 rounded-full">✓ Done</span>}
+                    {isAwaitingApproval && <span className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700 bg-amber-100 px-3 py-1 rounded-full">Needs Admin Approval</span>}
                   </div>
                   {isExpand && data && (
                     <div className="mt-1 mb-2 bg-white border border-stone-200 rounded-2xl p-5 text-xs space-y-3">
@@ -383,10 +388,14 @@ export default function Dashboard() {
                 className={`flex items-center gap-4 p-4 rounded-2xl border cursor-pointer transition-all hover:shadow-sm ${
                   run.status === "completed" ? "border-emerald-100 bg-emerald-50/30" :
                   run.status === "failed" ? "border-red-100 bg-red-50/30" :
+                  run.status === "awaiting_approval" ? "border-amber-100 bg-amber-50/30" :
                   "border-stone-100"
                 }`}>
                 <div className={`w-2.5 h-2.5 rounded-full ${
-                  run.status === "completed" ? "bg-emerald-500" : run.status === "failed" ? "bg-red-500" : "bg-yellow-500 animate-pulse"
+                  run.status === "completed" ? "bg-emerald-500" :
+                  run.status === "failed" ? "bg-red-500" :
+                  run.status === "awaiting_approval" ? "bg-amber-500" :
+                  "bg-yellow-500 animate-pulse"
                 }`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-stone-900 truncate">{run.generatedBlogTitle || "In Progress..."}</p>
@@ -399,8 +408,10 @@ export default function Dashboard() {
                 </div>
                 <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${
                   run.status === "completed" ? "bg-emerald-100 text-emerald-700" :
-                  run.status === "failed" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"
-                }`}>{run.status}</span>
+                  run.status === "failed" ? "bg-red-100 text-red-700" :
+                  run.status === "awaiting_approval" ? "bg-amber-100 text-amber-700" :
+                  "bg-yellow-100 text-yellow-700"
+                }`}>{run.status === "awaiting_approval" ? "Needs Admin Approval" : run.status}</span>
               </div>
             ))}
           </div>

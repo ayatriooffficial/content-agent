@@ -9,17 +9,18 @@
  */
 const { groqGenerate } = require("./clients/groqClient");
 const { getLocationByCity } = require("../config/locations");
+const safeParseJSON = require("./jsonParser/jsonParser");
 
 async function researchAgent(personaProfile, businessContext, locationContext = {}) {
   const targetLocation = locationContext.city || businessContext.targetLocation || "Kolkata";
   const locationData = getLocationByCity(targetLocation);
 
   // ═══════════════════════════════════════════════════════════════
-  // PHASE 1: GEMINI — Broad Contextual + Emotional Understanding
+  // PHASE 1: BROAD QUALITATIVE RESEARCH
   // ═══════════════════════════════════════════════════════════════
-  const geminiSystemPrompt = `You are a behavioral research intelligence system for the Indian Accounting & Finance Education market. You understand WHY users search, not just WHAT they search. Focus on emotional intent, career anxiety, and location-specific patterns. Research from: Google, LinkedIn, Reddit, YouTube, Accounting forums, Career discussions.`;
+  const phase1SystemPrompt = `You are a behavioral research intelligence system for the Indian Accounting & Finance Education market. You understand WHY users search, not just WHAT they search. Focus on emotional intent, career anxiety, and location-specific patterns. Provide deep, qualitative analysis.`;
 
-  const geminiUserPrompt = `Perform deep behavioral research for this specific audience and location.
+  const phase1UserPrompt = `Perform deep behavioral research for this specific audience and location.
 
 === AUDIENCE ===
 Reader: ${personaProfile.buyerPersona || "Accounting student"}
@@ -38,96 +39,124 @@ Education Hub: ${locationData.educationHub}
 Local Search Patterns: ${locationData.searchBehavior.join("; ")}
 Local Pain Points: ${locationData.studentPainPoints.join("; ")}` : `City: ${targetLocation}`}
 
-Perform research using these methodologies:
-1. SEARCH INTENT MAPPING — What do they search and WHY (fear, confusion, aspiration, urgency)?
-2. EMOTIONAL PATTERN ANALYSIS — What emotions drive their searches? What keeps them awake at night?
-3. TREND DETECTION — What accounting topics are currently trending in ${targetLocation}?
+Perform research on:
+1. SEARCH INTENT MAPPING — What do they search and WHY?
+2. EMOTIONAL PATTERN ANALYSIS — What emotions drive their searches?
+3. TREND DETECTION — What accounting topics are trending in ${targetLocation}?
 4. LOCATION-BASED SEARCH ANALYSIS — How do search patterns differ in ${targetLocation}?
 5. CAREER ANXIETY ANALYSIS — What career fears are MOST ACUTE right now?
-6. SOURCE RELIABILITY MAPPING — Which platforms and sources do they trust?
+6. EMOTIONAL TRANSFORMATION — What is the deep transformation they desperately seek?`;
 
-Respond in this EXACT format:
-
-[BEGIN_RESEARCH]
-SEARCH_INTENT_ANALYSIS: (8 search queries with the emotional WHY behind each, semicolon-separated)
-EMOTIONAL_SEARCH_DRIVERS: (8 emotional drivers behind their searches — DEEP, not surface-level, semicolon-separated)
-CAREER_ANXIETY_PATTERNS: (6 specific career anxiety patterns in ${targetLocation}, semicolon-separated)
-LOCATION_SEARCH_PATTERNS: (6 ${targetLocation}-specific search behaviors, semicolon-separated)
-PLATFORM_TRUST_MAP: (8 platforms they trust in ${targetLocation} and why — Google, YouTube, LinkedIn, Reddit, etc., comma-separated)
-TRENDING_TOPICS: (8 trending accounting education topics, comma-separated)
-CONTENT_FORMATS_PREFERRED: (5 content formats they prefer, comma-separated)
-EMOTIONAL_TRANSFORMATION_PSYCHOLOGY: (5-6 sentences on the deep emotional transformation they desperately seek)
-[END_RESEARCH]`;
-
-  let geminiResult = "";
+  let qualitativeResearch = "";
   try {
-    geminiResult = await groqGenerate(geminiSystemPrompt, geminiUserPrompt, { temperature: 0.8, maxTokens: 4000 });
+    console.log("  [Research Phase 1] Running qualitative research...");
+    qualitativeResearch = await groqGenerate(phase1SystemPrompt, phase1UserPrompt, { 
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.8, 
+      maxTokens: 2000  // Output is sliced to 3000 chars in Phase 2 prompt
+    });
   } catch (err) {
-    console.error("Research Agent — Groq Phase 1 failed:", err.message);
-    geminiResult = "";
+    console.error("Research Agent — Phase 1 failed:", err.message);
+    qualitativeResearch = "Qualitative research unavailable.";
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // PHASE 2: DEEPSEEK R1 — Analytical + Structured Insights
+  // PHASE 2: STRICT JSON ANALYTICAL EXTRACTION
   // ═══════════════════════════════════════════════════════════════
-  const deepseekSystemPrompt = `You are an analytical research intelligence engine for accounting education. Provide structured, data-driven insights. Focus on SEO opportunities, keyword gaps, and competitive gaps. Output structured analysis only.`;
+  const phase2SystemPrompt = `You are an analytical research intelligence engine. You take qualitative research and extract precise, data-driven insights into STRICT JSON format.
 
-  const deepseekUserPrompt = `Provide structured analytical research for accounting education content targeting ${businessContext.audienceCategory || "students"} in ${targetLocation}.
+CRITICAL RULES:
+- Output ONLY valid JSON. No markdown, no prose, no code fences.
+- All array fields must be actual JSON arrays of strings.`;
 
-=== AUDIENCE CONTEXT ===
-Reader: ${personaProfile.buyerPersona || "Accounting student"}
-Identity Belief: ${personaProfile.identityBelief || "Not specified"}
-Pain Points: ${(personaProfile.painPoints || []).join("; ")}
+  const phase2UserPrompt = `Extract structured analytical research for accounting education content targeting ${businessContext.audienceCategory || "students"} in ${targetLocation}.
 
-=== GEMINI BROAD RESEARCH (to build upon) ===
-${geminiResult.substring(0, 1500) || "No broad research available."}
+=== QUALITATIVE RESEARCH INTELLIGENCE ===
+${qualitativeResearch.substring(0, 3000)}
 
-Provide ANALYTICAL insights:
+Output EXACTLY this JSON structure (no extra text):
+{
+  "searchIntentAnalysis": "A 2-3 sentence summary of the overarching emotional search intent",
+  "emotionalSearchPatterns": ["fear of...","desire for...", "urgency regarding..."],
+  "careerAnxietyPatterns": ["anxiety 1", "anxiety 2", "anxiety 3"],
+  "locationSearchPatterns": ["local pattern 1", "local pattern 2"],
+  "platformTrustMap": ["Google", "LinkedIn", "Reddit"],
+  "trendingTopics": ["trend 1", "trend 2", "trend 3", "trend 4"],
+  "contentPreference": ["Case studies", "Salary insights", "Video tutorials"],
+  "transformationPsychology": "A 2-3 sentence summary of the emotional transformation they seek",
+  "keywords": ["seo keyword 1", "seo keyword 2", "seo keyword 3", "seo keyword 4"],
+  "aiSearchQueries": ["ChatGPT query 1", "ChatGPT query 2", "ChatGPT query 3"],
+  "seoGaps": ["competitor gap 1", "competitor gap 2", "competitor gap 3"],
+  "searchIntentClusters": ["cluster 1", "cluster 2", "cluster 3"],
+  "trustSignals": ["trust signal 1", "trust signal 2", "trust signal 3"],
+  "competitiveContentGaps": ["content gap 1", "content gap 2"],
+  "behavioralPatterns": ["behavior 1", "behavior 2"],
+  "contentOpportunityScore": 85
+}`;
 
-[BEGIN_ANALYSIS]
-HIGH_VALUE_KEYWORDS: (6 SEO keywords for ${targetLocation} accounting audience, comma-separated)
-AI_SEARCH_QUERIES: (4 conversational questions they ask ChatGPT/Perplexity — include ${targetLocation} context, comma-separated)
-SEO_GAPS: (3 keyword/content gaps that competitors miss, comma-separated)
-SEARCH_INTENT_CLUSTERS: (3 clusters of related search intents, each cluster as a group, semicolon-separated)
-TRUST_SIGNALS_NEEDED: (4 trust signals this audience needs to see, comma-separated)
-CONTENT_OPPORTUNITY_SCORE: (1-100, how much content opportunity exists for this audience in ${targetLocation})
-COMPETITIVE_CONTENT_GAPS: (3 content topics competitors don't cover well, comma-separated)
-BEHAVIORAL_PATTERNS: (3 platform-specific behaviors, comma-separated)
-[END_ANALYSIS]`;
-
-  let deepseekResult = "";
-  try {
-    deepseekResult = await groqGenerate(deepseekSystemPrompt, deepseekUserPrompt, { temperature: 0.5 });
-  } catch (err) {
-    console.error("Research Agent — Groq Phase 2 failed:", err.message);
-    deepseekResult = "";
+  let resultJSON = null;
+  
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      console.log(`  [Research Phase 2] Extracting JSON (Attempt ${attempt})...`);
+      const rawResult = await groqGenerate(phase2SystemPrompt, phase2UserPrompt, { 
+        model: "llama-3.1-8b-instant",  // Fast small model — pure JSON extraction task
+        temperature: 0.3, 
+        maxTokens: 1200  // JSON structure is ~500 tokens
+      });
+      
+      resultJSON = safeParseJSON(rawResult);
+      if (resultJSON && Array.isArray(resultJSON.keywords)) {
+        break; // Successfully parsed
+      } else {
+        throw new Error("Invalid or missing JSON fields");
+      }
+    } catch (err) {
+      console.warn(`  [Research Agent] JSON Extraction failed on attempt ${attempt}: ${err.message}`);
+      if (attempt === 2) {
+        // Fallback payload
+        resultJSON = {
+          searchIntentAnalysis: `Driven by career anxiety and placement urgency in ${targetLocation}.`,
+          emotionalSearchPatterns: ["Fear of unemployment", "Confusion about career path", "Urgency before placements"],
+          careerAnxietyPatterns: ["Failing interviews", "Not having practical skills"],
+          locationSearchPatterns: [`Job queries specific to ${targetLocation}`],
+          platformTrustMap: ["Google Search", "YouTube", "LinkedIn"],
+          trendingTopics: ["GST updates", "Tally Prime practicals", "Interview preparation"],
+          contentPreference: ["Step-by-step guides", "Salary transparency", "Practical examples"],
+          transformationPsychology: "Seeking confidence to face interviews and guarantee a stable income.",
+          keywords: [`accounting course ${targetLocation}`, "practical accounting training", "Tally learning for beginners", "GST filing training", "accounting job for freshers"],
+          aiSearchQueries: [`What should I learn to get an accounting job in ${targetLocation}?`, "Is Tally enough for a job?"],
+          seoGaps: ["Real salary data", "Location specific interview questions"],
+          searchIntentClusters: ["Course discovery", "Salary research", "Interview prep"],
+          trustSignals: ["Student testimonials", "Salary data", "Practical curriculum"],
+          competitiveContentGaps: ["Emotional support", "Realistic career paths"],
+          behavioralPatterns: ["Searching for salaries first", "Comparing multiple institutes"],
+          contentOpportunityScore: 75
+        };
+      }
+    }
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // MERGE: Combine both outputs into structured research JSON
-  // ═══════════════════════════════════════════════════════════════
-  const geminiBlock = extractBlock(geminiResult, "[BEGIN_RESEARCH]", "[END_RESEARCH]") || geminiResult;
-  const deepseekBlock = extractBlock(deepseekResult, "[BEGIN_ANALYSIS]", "[END_ANALYSIS]") || deepseekResult;
-
-  const result = {
-    searchIntentAnalysis: extractField(geminiBlock, "SEARCH_INTENT_ANALYSIS"),
-    emotionalSearchPatterns: extractListSemicolon(geminiBlock, "EMOTIONAL_SEARCH_DRIVERS"),
-    careerAnxietyPatterns: extractListSemicolon(geminiBlock, "CAREER_ANXIETY_PATTERNS"),
-    locationSearchPatterns: extractListSemicolon(geminiBlock, "LOCATION_SEARCH_PATTERNS"),
-    platformTrustMap: extractList(geminiBlock, "PLATFORM_TRUST_MAP"),
-    trendInsights: extractList(geminiBlock, "TRENDING_TOPICS"),
-    contentPreference: extractList(geminiBlock, "CONTENT_FORMATS_PREFERRED"),
-    transformationPsychology: extractField(geminiBlock, "EMOTIONAL_TRANSFORMATION_PSYCHOLOGY"),
-    keywords: extractList(deepseekBlock, "HIGH_VALUE_KEYWORDS"),
-    aiSearchQueries: extractList(deepseekBlock, "AI_SEARCH_QUERIES"),
-    seoGaps: extractList(deepseekBlock, "SEO_GAPS"),
-    searchIntentClusters: extractListSemicolon(deepseekBlock, "SEARCH_INTENT_CLUSTERS"),
-    trustSignals: extractList(deepseekBlock, "TRUST_SIGNALS_NEEDED"),
-    contentOpportunityScore: parseInt(extractField(deepseekBlock, "CONTENT_OPPORTUNITY_SCORE")) || 65,
-    competitiveContentGaps: extractList(deepseekBlock, "COMPETITIVE_CONTENT_GAPS"),
-    behavioralPatterns: extractList(deepseekBlock, "BEHAVIORAL_PATTERNS"),
-    contextualQueries: extractList(deepseekBlock, "AI_SEARCH_QUERIES"),
-    trendingTopics: extractList(geminiBlock, "TRENDING_TOPICS"),
+  // Construct final JS object matching original expected structure
+  return {
+    searchIntentAnalysis: resultJSON.searchIntentAnalysis || "",
+    emotionalSearchPatterns: Array.isArray(resultJSON.emotionalSearchPatterns) ? resultJSON.emotionalSearchPatterns : [],
+    careerAnxietyPatterns: Array.isArray(resultJSON.careerAnxietyPatterns) ? resultJSON.careerAnxietyPatterns : [],
+    locationSearchPatterns: Array.isArray(resultJSON.locationSearchPatterns) ? resultJSON.locationSearchPatterns : [],
+    platformTrustMap: Array.isArray(resultJSON.platformTrustMap) ? resultJSON.platformTrustMap : [],
+    trendInsights: Array.isArray(resultJSON.trendingTopics) ? resultJSON.trendingTopics : [],
+    contentPreference: Array.isArray(resultJSON.contentPreference) ? resultJSON.contentPreference : [],
+    transformationPsychology: resultJSON.transformationPsychology || "",
+    keywords: Array.isArray(resultJSON.keywords) ? resultJSON.keywords : [],
+    aiSearchQueries: Array.isArray(resultJSON.aiSearchQueries) ? resultJSON.aiSearchQueries : [],
+    seoGaps: Array.isArray(resultJSON.seoGaps) ? resultJSON.seoGaps : [],
+    searchIntentClusters: Array.isArray(resultJSON.searchIntentClusters) ? resultJSON.searchIntentClusters : [],
+    trustSignals: Array.isArray(resultJSON.trustSignals) ? resultJSON.trustSignals : [],
+    contentOpportunityScore: parseInt(resultJSON.contentOpportunityScore) || 75,
+    competitiveContentGaps: Array.isArray(resultJSON.competitiveContentGaps) ? resultJSON.competitiveContentGaps : [],
+    behavioralPatterns: Array.isArray(resultJSON.behavioralPatterns) ? resultJSON.behavioralPatterns : [],
+    contextualQueries: Array.isArray(resultJSON.aiSearchQueries) ? resultJSON.aiSearchQueries : [],
+    trendingTopics: Array.isArray(resultJSON.trendingTopics) ? resultJSON.trendingTopics : [],
     dataSources: ["Google Search", "YouTube", "LinkedIn", "Reddit", "Accounting Forums", "Career Discussions"],
     methodology: {
       principlesUsed: ["Search Intent Mapping", "Emotional Pattern Analysis", "Trend Detection", "Context Aggregation", "SEO Opportunity Analysis", "Source Reliability Filtering", "Location-based Search Analysis", "Career Anxiety Analysis"],
@@ -136,43 +165,10 @@ BEHAVIORAL_PATTERNS: (3 platform-specific behaviors, comma-separated)
         primary: "Groq (Llama 3.3 70B)",
         fallback: "Groq (Llama 3.3 70B)"
       },
-      approach: "Research intelligence powered by Groq.",
+      approach: "Research intelligence powered by Groq (JSON Enforced).",
       reasoning: "Research focused on deep persona pain points and localized anxieties. Analysis exploits gaps competitors miss by addressing the emotional core of commerce career searches."
     }
   };
-
-  if (result.keywords.length === 0) {
-    result.keywords = [`accounting course ${targetLocation}`, "practical accounting training", "Tally learning for beginners", "GST filing training", "accounting job for freshers"];
-    result.aiSearchQueries = [`What should I learn to get an accounting job in ${targetLocation}?`, "Is Tally enough for a job?"];
-    result.emotionalSearchPatterns = ["Fear of unemployment", "Confusion about career path", "Urgency before placements"];
-    result.trustSignals = ["Student testimonials", "Salary data", "Practical curriculum"];
-  }
-
-  return result;
-}
-
-function extractBlock(text, start, end) {
-  if (!text) return null;
-  const s = text.indexOf(start);
-  const e = text.indexOf(end, s + start.length);
-  if (s === -1 || e === -1) return null;
-  return text.substring(s + start.length, e).trim();
-}
-
-function extractField(block, key) {
-  if (!block) return "";
-  const match = block.match(new RegExp(`${key}:\\s*(.+)`, "i"));
-  return match ? match[1].trim() : "";
-}
-
-function extractList(block, key) {
-  const val = extractField(block, key);
-  return val ? val.split(",").map(s => s.trim()).filter(s => s.length > 0) : [];
-}
-
-function extractListSemicolon(block, key) {
-  const val = extractField(block, key);
-  return val ? val.split(";").map(s => s.trim()).filter(s => s.length > 0) : [];
 }
 
 module.exports = researchAgent;

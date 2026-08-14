@@ -37,6 +37,11 @@ const blogSchema = new mongoose.Schema(
       default: "ACCOUNTING",
       trim: true,
     },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected", "published"],
+      default: "pending",
+    },
     description: {
       type: String,
       required: false,
@@ -95,6 +100,15 @@ const blogSchema = new mongoose.Schema(
       default: "manual",
     },
     pipelineRunId: {
+      type: String,
+      default: "",
+    },
+    // Traceability back to the content calendar slot this was generated from
+    calendarId: {
+      type: String,
+      default: "",
+    },
+    slotKey: {
       type: String,
       default: "",
     },

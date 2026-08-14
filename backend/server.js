@@ -3,6 +3,8 @@ const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
 const blogRoutes = require("./routes/blogRoutes");
+const emailRoutes = require("./routes/emailRoutes");
+const whatsappRoutes = require("./routes/whatsappRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const { startScheduler } = require("./scheduler/cronScheduler");
 
@@ -17,6 +19,7 @@ const allowedOrigins = [
   "http://localhost:3001",
   "http://localhost:4173",
   "http://localhost:5173",
+  "http://localhost:4000",
   "https://hello0123.netlify.app"
 ];
 
@@ -44,6 +47,8 @@ connectDB();
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use("/api", blogRoutes);
+app.use("/api", emailRoutes);
+app.use("/api", whatsappRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
 // ─── Health check ─────────────────────────────────────────────────────────────
@@ -73,5 +78,3 @@ app.listen(PORT, () => {
   // Start the autonomous scheduler
   startScheduler();
 });
-
-

@@ -1,4 +1,5 @@
 const { groqGenerate } = require("./clients/groqClient");
+const safeParseJSON = require("./jsonParser/jsonParser");
 
 /**
  * Orchestrator Agent — STEP 4 of the autonomous pipeline. The Central Brain.
@@ -57,25 +58,29 @@ Synthesize ALL intelligence above into a content blueprint. The content must:
 6. NOT repeat any previous titles
 7. Target localized SEO keywords
 
-Respond in this EXACT format:
+CRITICAL RULES:
+- Output ONLY valid JSON. No markdown, no prose, no code fences.
+- All array fields must be actual JSON arrays of strings.
 
-[BEGIN_BLUEPRINT]
-BLOG_TITLE: (emotionally specific title for ${targetLocation} accounting audience)
-EMOTIONAL_HOOK: (opening hook that validates their specific pain in ${targetLocation})
-EMOTIONAL_ANGLE: (the primary emotional strategy for this content)
-TRANSFORMATION_STORY: (the journey from their current pain to their desired success)
-TRUST_BUILDING_STRATEGY: (how to build authority for this specific audience)
-SECTIONS_TO_COVER: (comma-separated list of 4-5 focused H2 sections)
-PERSUASION_CTA: (emotionally obvious next step for this audience)
-POSITIONING_STRATEGY: (how to win against competitors in this niche)
-TARGET_KEYWORDS: (5-6 SEO keywords including ${targetLocation}-specific terms)
-CATEGORY: (ACCOUNTING or FINANCE — 1 word)
-WORD_COUNT: (1000-1500)
-CONTENT_DIRECTION: (1-2 sentences on overall content strategy and reasoning)
-[END_BLUEPRINT]`;
+Output EXACTLY this JSON structure (no extra text):
+{
+  "blogTitle": "emotionally specific title for target accounting audience",
+  "emotionalHook": "opening hook that validates their specific pain",
+  "emotionalAngle": "the primary emotional strategy for this content",
+  "transformationStory": "the journey from their current pain to their desired success",
+  "trustBuildingStrategy": "how to build authority for this specific audience",
+  "sectionsToCover": ["section H2 1", "section H2 2", "section H2 3", "section H2 4"],
+  "persuasionCta": "emotionally obvious next step for this audience",
+  "positioningStrategy": "how to win against competitors in this niche",
+  "targetKeywords": ["keyword 1", "keyword 2", "keyword 3", "keyword 4"],
+  "category": "ACCOUNTING",
+  "wordCount": 1200,
+  "contentDirection": "1-2 sentences on overall content strategy and reasoning"
+}`;
 
   const fallbackResult = {
     blogTitle: `The ${domainResult.audienceCategory}'s Guide to Breaking Into Accounting in ${targetLocation}`,
+    emotionalTone: `Connecting with the specific frustrations of ${domainResult.audienceType} in ${targetLocation}.`,
     emotionalHook: `Connecting with the specific frustrations of ${domainResult.audienceType} in ${targetLocation}.`,
     emotionalAngle: "Empathy + practical roadmap",
     transformationStory: `From ${persona.beforeState || "confusion"} to ${persona.afterState || "confidence"}.`,
@@ -90,7 +95,7 @@ CONTENT_DIRECTION: (1-2 sentences on overall content strategy and reasoning)
     contentDirection: `Psychology-driven practical accounting content for ${targetLocation}.`,
     targetLocation,
     methodology: {
-      approach: "Multi-Intelligence Synthesis",
+      approach: "Multi-Intelligence Synthesis (Fallback)",
       inputs: ["Persona Psychology", "Research Data", "Competitor Analysis", "Memory History", "Location Intelligence"],
       reasoning: "Combined 5 intelligence sources to determine optimal content strategy.",
       decisions: {
@@ -102,65 +107,65 @@ CONTENT_DIRECTION: (1-2 sentences on overall content strategy and reasoning)
     }
   };
 
-  let raw = "";
-  try {
-    raw = await groqGenerate(
-      `You are a strategic content brain for accounting education targeting ${targetLocation}. You combine psychology, research, competitor gaps, and memory into a precise content blueprint. Every decision must be data-driven and psychologically grounded. Focus exclusively on accounting, finance, GST, Tally, taxation, and commerce career content. Always include location-specific context.`,
-      prompt,
-      { model: "llama-3.3-70b-versatile", temperature: 0.7 }
-    );
-  } catch (err) {
-    console.error("Orchestrator Agent — Groq generation failed:", err.message);
-    return fallbackResult;
+  let resultJSON = null;
+  
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      console.log(`  [Orchestrator Agent] Extracting JSON blueprint (Attempt ${attempt})...`);
+      const rawResult = await groqGenerate(
+        `You are a strategic content brain for accounting education targeting ${targetLocation}. You combine psychology, research, competitor gaps, and memory into a precise content blueprint. Every decision must be data-driven and psychologically grounded. Focus exclusively on accounting, finance, GST, Tally, taxation, and commerce career content. Always include location-specific context. Output STRICT JSON only.`,
+        prompt,
+        { model: "llama-3.3-70b-versatile", temperature: 0.6, maxTokens: 1200 }  // Blueprint JSON is ~500 tokens
+      );
+      
+      resultJSON = safeParseJSON(rawResult);
+      if (resultJSON && resultJSON.blogTitle && Array.isArray(resultJSON.targetKeywords)) {
+        break; // Successfully parsed
+      } else {
+        throw new Error("Invalid or missing JSON fields");
+      }
+    } catch (err) {
+      console.warn(`  [Orchestrator Agent] JSON Extraction failed on attempt ${attempt}: ${err.message}`);
+      if (attempt === 2) {
+        return fallbackResult;
+      }
+    }
   }
-  const block = extractBlock(raw, "[BEGIN_BLUEPRINT]", "[END_BLUEPRINT]");
 
-  if (!block) return fallbackResult;
+  // Enforce Category logic
+  const validCategories = ["ACCOUNTING", "FINANCE"];
+  let finalCategory = (resultJSON.category || "ACCOUNTING").toUpperCase().split(" ")[0];
+  if (!validCategories.includes(finalCategory)) {
+    finalCategory = "ACCOUNTING";
+  }
 
   return {
-    blogTitle: extractField(block, "BLOG_TITLE") || fallbackResult.blogTitle,
-    emotionalTone: extractField(block, "EMOTIONAL_HOOK"),
-    emotionalHook: extractField(block, "EMOTIONAL_HOOK"),
-    emotionalAngle: extractField(block, "EMOTIONAL_ANGLE"),
-    transformationStory: extractField(block, "TRANSFORMATION_STORY"),
-    trustBuildingStrategy: extractField(block, "TRUST_BUILDING_STRATEGY"),
-    sectionsToCover: extractList(block, "SECTIONS_TO_COVER"),
-    ctaStrategy: extractField(block, "PERSUASION_CTA"),
-    rankingStrategy: extractField(block, "POSITIONING_STRATEGY"),
-    targetKeywords: extractList(block, "TARGET_KEYWORDS"),
-    category: (extractField(block, "CATEGORY") || "ACCOUNTING").toUpperCase().split(" ")[0],
-    wordCount: parseInt(extractField(block, "WORD_COUNT")) || 1200,
-    contentAngle: extractField(block, "TRANSFORMATION_STORY"),
-    contentDirection: extractField(block, "CONTENT_DIRECTION"),
+    blogTitle: resultJSON.blogTitle || fallbackResult.blogTitle,
+    emotionalTone: resultJSON.emotionalHook || "",
+    emotionalHook: resultJSON.emotionalHook || "",
+    emotionalAngle: resultJSON.emotionalAngle || "",
+    transformationStory: resultJSON.transformationStory || "",
+    trustBuildingStrategy: resultJSON.trustBuildingStrategy || "",
+    sectionsToCover: Array.isArray(resultJSON.sectionsToCover) ? resultJSON.sectionsToCover : fallbackResult.sectionsToCover,
+    ctaStrategy: resultJSON.persuasionCta || "",
+    rankingStrategy: resultJSON.positioningStrategy || "",
+    targetKeywords: Array.isArray(resultJSON.targetKeywords) ? resultJSON.targetKeywords : fallbackResult.targetKeywords,
+    category: finalCategory,
+    wordCount: parseInt(resultJSON.wordCount) || 1200,
+    contentAngle: resultJSON.transformationStory || "",
+    contentDirection: resultJSON.contentDirection || "",
     targetLocation,
     methodology: {
       approach: "Multi-Intelligence Synthesis Engine",
       inputs: ["Deep Persona Psychology", "Dual-Model Research", "7-Framework Competitor Analysis", "Self-Learning Memory", "Location Intelligence"],
-      reasoning: `Synthesized ${domainResult.audienceCategory} persona insights with research data, competitor gaps, and localized context. Avoided ${(memory.previousTitles || []).length} previously generated titles using Llama 3.3 Intelligence.`,
+      reasoning: `Synthesized ${domainResult.audienceCategory} persona insights with research data, competitor gaps, and localized context. Avoided ${(memory.previousTitles || []).length} previously generated titles using Llama 3.3 Intelligence (JSON Enforced).`,
       decisions: {
-        emotionalAngle: extractField(block, "EMOTIONAL_ANGLE"),
-        rankingApproach: extractField(block, "POSITIONING_STRATEGY"),
-        contentDirection: extractField(block, "CONTENT_DIRECTION")
+        emotionalAngle: resultJSON.emotionalAngle || "",
+        rankingApproach: resultJSON.positioningStrategy || "",
+        contentDirection: resultJSON.contentDirection || ""
       }
     }
   };
-}
-
-function extractBlock(text, start, end) {
-  const s = text.indexOf(start);
-  const e = text.indexOf(end, s + start.length);
-  if (s === -1 || e === -1) return null;
-  return text.substring(s + start.length, e).trim();
-}
-
-function extractField(block, key) {
-  const match = block.match(new RegExp(`${key}:\\s*(.+)`, "i"));
-  return match ? match[1].trim() : "";
-}
-
-function extractList(block, key) {
-  const val = extractField(block, key);
-  return val ? val.split(",").map(s => s.trim()).filter(s => s.length > 0) : [];
 }
 
 module.exports = orchestratorAgent;

@@ -1,27 +1,39 @@
 /**
  * AUTONOMOUS PIPELINE
- * The complete autonomous execution flow that runs every 15 days.
- * 
+ * The intelligence-gathering half of the autonomous flow that runs every
+ * 15 days. It ends at the first Admin Approval Gate — it does NOT generate
+ * or publish any blog/email/WhatsApp content itself.
+ *
  * AGENT ORDER:
  * 1. Opportunity Analysis Agent (select audience + location)
  * 2. Persona Intelligence Agent (Groq)
  * 3. Research Agent (Groq)
  * 4. Competitor Agent (Groq)
- * 5. Orchestrator Agent (Groq)
- * 6. Content Generation Agent (Groq)
- * 7. Validation Agent (Groq)
- * 8. MongoDB Storage
- * 9. Memory Update + Frontend Auto Update
+ * 5. Memory Agent (self-learning)
+ * 6. Orchestrator Agent (Groq)
+ * 7. Content Calendar Agent (runs on the synthesized blueprint) + Admin Approval Gate
+ *
+ * What happens after the gate is deliberately NOT part of this function:
+ *   - Admin approves/rejects individual calendar slots via
+ *     PATCH /api/dashboard/calendars/:id/slots/:channel/:slotKey/approve|reject
+ *     (routes/dashboardRoutes.js), which triggers per-slot generation
+ *     (agents/contentCalendar/slotContentAgent.js) using the persona /
+ *     research / competitor / blueprint intelligence saved on this run's
+ *     PipelineRun document below.
+ *   - Each generated Blog / EmailCampaign / WhatsAppCampaign then sits in
+ *     its own SECOND admin approval gate (the content review queue in
+ *     approval-dashboard2), and only publishes/sends once approved there
+ *     (routes/blogRoutes.js, routes/emailRoutes.js, routes/whatsappRoutes.js).
  */
 const { v4: uuidv4 } = require("uuid");
 
 // Models
-const Blog = require("../models/Blog");
 const PipelineRun = require("../models/PipelineRun");
 const OpportunityScore = require("../models/OpportunityScore");
 const Persona = require("../models/Persona");
 const ResearchHistory = require("../models/ResearchHistory");
 const CompetitorAnalysis = require("../models/CompetitorAnalysis");
+const ContentCalendar = require("../models/ContentCalendar");
 
 // Agents
 const opportunityAgent = require("./opportunityAgent");
@@ -30,10 +42,9 @@ const personaTemplateLoader = require("./personaTemplateLoader");
 const personaAgent = require("./personaAgent");
 const researchAgent = require("./researchAgent");
 const competitorAgent = require("./competitorAgent");
-const { memoryAgent, updateMemory } = require("./memoryAgent");
+const { memoryAgent } = require("./memoryAgent");
 const orchestratorAgent = require("./orchestratorAgent");
-const blogGeneratorAgent = require("./blogGeneratorAgent");
-const validationAgent = require("./validationAgent");
+const runContentCalendarAgent = require("./contentCalendar/contentCalendarAgent");
 
 // Config
 const { getCompetitorURLs } = require("../config/competitors");
@@ -47,7 +58,7 @@ async function runAutonomousPipeline(options = {}) {
   const runId = uuidv4();
   const runType = options.runType || "autonomous";
   const sseWriter = options.sseWriter || null;
-  const onStepUpdate = options.onStepUpdate || (() => {});
+  const onStepUpdate = options.onStepUpdate || (() => { });
 
   const sendStep = (step, status, data) => {
     const logEntry = { step, status, message: data?.message || step, timestamp: new Date() };
@@ -79,7 +90,7 @@ async function runAutonomousPipeline(options = {}) {
     pipelineRun.currentStep = "opportunity";
 
     const opportunityResult = await opportunityAgent();
-    
+
     const selectedCategory = opportunityResult.selectedCategory;
     const selectedLocation = opportunityResult.selectedLocation;
 
@@ -122,8 +133,8 @@ async function runAutonomousPipeline(options = {}) {
       educationBackground: selectedCategory === "Working Professional" ? "Commerce Graduate" : "Commerce",
       experienceLevel: selectedCategory === "Working Professional" ? "Experienced" : "Beginner",
       primaryGoal: selectedCategory === "Working Professional" ? "Increase Salary" : "Get First Job",
-      biggestProblem: selectedCategory === "12th Pass Commerce Student" ? "No career direction" : 
-                      selectedCategory === "Working Professional" ? "Career stagnation" : "No practical accounting exposure",
+      biggestProblem: selectedCategory === "12th Pass Commerce Student" ? "No career direction" :
+        selectedCategory === "Working Professional" ? "Career stagnation" : "No practical accounting exposure",
       businessGoal: "Generate SEO traffic and student enrollment",
       industry: "Accounting & Finance Education",
       targetLocation: selectedLocation
@@ -164,8 +175,13 @@ async function runAutonomousPipeline(options = {}) {
     });
     pipelineRun.currentStep = "persona";
 
-    const personaResult = await personaAgent(selectedTemplates, businessContext, { city: selectedLocation });
-    
+    const personaResult = await personaAgent(
+      selectedTemplates,
+      businessContext,
+      { city: selectedLocation },
+      opportunityResult.broadMarketResearch || ""
+    );
+
     await Persona.create({
       domain: domainResult.domain,
       companyName: businessContext.companyName,
@@ -187,7 +203,7 @@ async function runAutonomousPipeline(options = {}) {
     pipelineRun.currentStep = "research";
 
     const researchResult = await researchAgent(personaResult, businessContext, { city: selectedLocation });
-    
+
     await ResearchHistory.create({
       domain: domainResult.domain,
       companyName: businessContext.companyName,
@@ -215,7 +231,7 @@ async function runAutonomousPipeline(options = {}) {
       personaResult,
       researchResult
     );
-    
+
     await CompetitorAnalysis.create({
       domain: domainResult.domain,
       companyName: businessContext.companyName,
@@ -257,116 +273,82 @@ async function runAutonomousPipeline(options = {}) {
     await delay(1000);
 
     // ══════════════════════════════════════════════════════════════
-    // STEP 8: CONTENT GENERATION (No Location Mention Rule)
+    // STEP 7.1: CONTENT CALENDAR AGENT (3 Streams: Blog, Email, WhatsApp)
+    // Runs AFTER the orchestrator so the calendar is built from the
+    // final synthesized strategy (targetKeywords, contentAngle,
+    // emotionalHook, emotionalAngle) instead of raw pre-synthesis
+    // persona/research/competitor data.
     // ══════════════════════════════════════════════════════════════
-    sendStep("generator", "running", {
-      message: `Writing psychology-driven content (Location privacy active)...`,
-      methodology: "Persona-Driven Content Synthesis (Groq Llama 3.3)"
-    });
-    pipelineRun.currentStep = "generator";
+    sendStep("content_calendar", "running", { message: "Generating 15-day multi-stream content calendar..." });
+    pipelineRun.currentStep = "content_calendar";
 
-    const blogResult = await blogGeneratorAgent(blueprint, personaResult, researchResult, competitorResult);
-    sendStep("generator", "done", { title: blogResult.title, wordCount: blogResult.wordCount });
-    await delay(1000);
+    const calendarPayload = await runContentCalendarAgent({
+      businessContext,
+      personaResult,
+      researchResult,
+      competitorResult,
+      memoryResult,
+      blueprint // ✅ orchestrator's synthesized strategy now feeds the calendar
+    }, new Date().toISOString());
 
-    // ══════════════════════════════════════════════════════════════
-    // STEP 9: VALIDATION (7-Dimension)
-    // ══════════════════════════════════════════════════════════════
-    sendStep("validation", "running", {
-      message: "Running 7-dimension quality validation...",
-      methodology: "Multi-Dimension Quality Assessment (Groq Llama 3.3)"
-    });
-    pipelineRun.currentStep = "validation";
-
-    const validationResult = await validationAgent(blogResult, blueprint, personaResult, researchResult, competitorResult);
-
-    pipelineRun.agentOutputs.validationResult = validationResult;
-    sendStep("validation", "done", validationResult);
-    await delay(500);
-
-    // ══════════════════════════════════════════════════════════════
-    // STEP 10: SAVE TO MONGODB
-    // ══════════════════════════════════════════════════════════════
-    sendStep("saving", "running", { message: "Saving to MongoDB..." });
-
-    const readingTime = Math.max(1, Math.ceil((blogResult.wordCount || 0) / 200));
-
-    const blog = new Blog({
-      title: blogResult.title,
-      content: blogResult.content,
-      summary: blogResult.summary,
-      metaDescription: blogResult.metaDescription,
-      h1: blogResult.h1,
-      h2s: blogResult.h2s,
-      category: blogResult.category,
-      tags: blogResult.tags,
-      faq: blogResult.faq,
-      cta: blogResult.cta,
-      wordCount: blogResult.wordCount,
-      readingTime,
+    // Save ContentCalendar to MongoDB
+    const contentCalendarDoc = new ContentCalendar({
+      calendarId: calendarPayload.calendarId,
+      campaignName: calendarPayload.campaignName,
+      timeframe: calendarPayload.timeframe || "15 Days",
+      status: "PENDING_ADMIN_APPROVAL",
+      summary: calendarPayload.summary,
+      schedule: calendarPayload.schedule,
+      calendarView: calendarPayload.calendarView,
+      pipelineRunId: runId,
+      audienceCategory: selectedCategory,
+      targetLocation: selectedLocation,
+      generatedBy: "autonomous",
       businessContext: {
         companyName: businessContext.companyName,
-        domain: domainResult.domain,
-        industry: domainResult.industry,
-      },
-      validationScore: validationResult.score,
-      description: `${businessContext.companyName} | ${domainResult.domain}`,
-      // Autonomous fields
-      audienceCategory: selectedCategory,
-      targetLocation: selectedLocation, // Stored in backend but not mentioned in text
-      generatedBy: runType === "manual_trigger" ? "manual" : "autonomous",
-      pipelineRunId: runId,
-      opportunityScore: pipelineRun.opportunityScore,
-      seoKeywords: blueprint.targetKeywords || [],
-      emotionalHook: blueprint.emotionalHook || "",
-      createdAt: new Date()
-    });
-    
-    console.log(`💾 Attempting to save blog: "${blog.title}"...`);
-    const savedBlog = await blog.save();
-    console.log(`✅ Blog saved successfully with ID: ${savedBlog._id}`);
-
-    // Update memory with self-learning data
-    await updateMemory(
-      domainResult.domain,
-      blogResult.title,
-      blogResult.tags,
-      blogResult.category,
-      blueprint.contentAngle,
-      {
-        hook: blueprint.emotionalHook,
-        personaInsight: `${selectedCategory}: ${personaResult.buyerPersona}`,
-        competitorPattern: competitorResult.strategyNotes,
-        emotionalStrategy: blueprint.emotionalAngle,
-        researchInsight: researchResult.transformationPsychology
+        domain: domainResult?.domain || "Accounting",
+        industry: businessContext.industry
       }
-    );
+    });
 
-    // Update pipeline run
-    pipelineRun.status = "completed";
-    pipelineRun.generatedBlogId = savedBlog._id;
-    pipelineRun.generatedBlogTitle = savedBlog.title;
-    pipelineRun.completedAt = new Date();
-    pipelineRun.durationMs = Date.now() - pipelineRun.startedAt.getTime();
+    await contentCalendarDoc.save();
+
+    // Attach saved calendar document to pipeline run
+    pipelineRun.agentOutputs.contentCalendar = contentCalendarDoc;
+
+    // ══════════════════════════════════════════════════════════════
+    // STEP 7.2: ADMIN APPROVAL GATE (PAUSE PIPELINE HERE)
+    // ══════════════════════════════════════════════════════════════
+    pipelineRun.status = "awaiting_approval";
+    pipelineRun.currentStep = "calendar_approval";
     await pipelineRun.save();
 
-    const finalResult = {
+    sendStep("calendar_approval", "awaiting_approval", {
+      message: "15-Day Content Calendar created and saved! Pipeline paused waiting for Admin Approval.",
+      calendarMongoId: contentCalendarDoc._id,
+      calendarId: contentCalendarDoc.calendarId,
+      summary: contentCalendarDoc.summary,
+      schedule: contentCalendarDoc.schedule,
+      calendarView: contentCalendarDoc.calendarView
+    });
+
+    console.log(`⏸️ [Pipeline ${runId}] Paused at Admin Approval Gate. Calendar ID: ${contentCalendarDoc.calendarId}`);
+
+    // Intelligence gathering is done — everything past this point (blog /
+    // email / WhatsApp generation, validation, saving, sending/publishing)
+    // happens per-slot, only after an admin approves that slot, via
+    // routes/dashboardRoutes.js -> agents/contentCalendar/slotContentAgent.js.
+    return {
       runId,
-      status: "completed",
-      blogId: savedBlog._id,
-      title: savedBlog.title,
-      category: savedBlog.category,
-      audienceCategory: selectedCategory,
-      validationScore: validationResult.score,
-      wordCount: blogResult.wordCount,
-      readingTime,
+      status: "awaiting_approval",
+      selectedAudienceCategory: selectedCategory,
+      selectedLocation,
       opportunityScore: pipelineRun.opportunityScore,
-      durationMs: pipelineRun.durationMs,
+      calendarId: contentCalendarDoc.calendarId,
+      calendarMongoId: contentCalendarDoc._id,
+      summary: contentCalendarDoc.summary,
+      message: "Content calendar generated and awaiting admin approval. Approve individual slots to generate their content.",
     };
-
-    sendStep("complete", "done", finalResult);
-
-    return finalResult;
 
   } catch (err) {
     console.error("❌ Autonomous Pipeline Error:", err);

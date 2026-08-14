@@ -4,7 +4,7 @@ const pipelineRunSchema = new mongoose.Schema({
   // Run metadata
   runId: { type: String, required: true, unique: true },
   runType: { type: String, enum: ["autonomous", "manual_trigger"], default: "autonomous" },
-  status: { type: String, enum: ["running", "completed", "failed"], default: "running" },
+  status: { type: String, enum: ["running", "completed", "failed","awaiting_approval"], default: "running" },
   
   // Selection intelligence
   selectedAudienceCategory: { type: String, required: true },
@@ -19,6 +19,9 @@ const pipelineRunSchema = new mongoose.Schema({
     researchIntelligence: { type: mongoose.Schema.Types.Mixed },
     competitorIntelligence: { type: mongoose.Schema.Types.Mixed },
     orchestratorBlueprint: { type: mongoose.Schema.Types.Mixed },
+    contentCalendar: { type: mongoose.Schema.Types.Mixed },
+    emailCampaign: { type: mongoose.Schema.Types.Mixed },
+    whatsappCampaign: { type: mongoose.Schema.Types.Mixed },
     validationResult: { type: mongoose.Schema.Types.Mixed }
   },
 

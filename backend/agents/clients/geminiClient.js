@@ -27,7 +27,7 @@ function getGeminiClient() {
  */
 async function geminiGenerate(systemPrompt, userPrompt, options = {}) {
   const client = getGeminiClient();
-  const model = options.model || "gemini-2.0-flash";
+  const model = options.model || "gemini-2.5-flash";
   const temperature = options.temperature || 0.7;
   const maxTokens = options.maxTokens || 4096;
 
