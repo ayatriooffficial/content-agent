@@ -80,9 +80,19 @@ CRITICAL RULES:
 - Keep the message concise, conversational, and mobile-friendly.
 - Ground every claim in the LIVE WEBSITE DATA (programs, fees, placements, faculty, testimonials). Do NOT invent stats, guarantees, or unsupported claims.
 - Do not mention city or state names in the message body.
-- All array fields must be actual JSON arrays of strings.`;
+- All array fields must be actual JSON arrays of strings.
+- The message MUST match the buyer-journey stage given below. NEVER mix stages.`;
 
   const userPrompt = `Create a WhatsApp campaign for Charters Union of Business that promotes its real programs (CBA/DGM/TBM) to the same audience.
+
+=== BUYER-JOURNEY STAGE (MANDATORY) ===
+Stage: ${context.funnelStage || "1_AWARENESS"}
+Objective: ${context.objective || ""}
+This message MUST follow the "${context.funnelStage || "1_AWARENESS"}" purpose:
+- 1_AWARENESS: educate on the career problem/opportunity. NO hard sell, NO enrollment push. Informational tone. Open a curiosity gap.
+- 2_ENGAGEMENT: deliver proof (placement outcomes, faculty, ROI). Invite a reply or question. Show real stats/bullets.
+- 3_CONVERSION: drive action — upcoming batch, deadline, seats filling, scholarship. Clear apply CTA or "talk to a counselor". Honest urgency, no fake scarcity.
+DIVERSITY RULE: This is slot "${context.slotKey || "unknown"}" in a 6-message WhatsApp sequence. Do NOT repeat the hook, opening, bullets, or structure of the other slots in the sequence. Write uniquely for THIS slot's specific angle below.
 
 === STRATEGIC BLUEPRINT ===
 Blog Title: ${blogTitle}

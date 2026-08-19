@@ -159,7 +159,10 @@ async function generateEmailForSlot(calendar, slot) {
             gapKeywords: Array.isArray(slot.gapKeywords) ? slot.gapKeywords : [],
             primaryKeyword: slot.primaryKeyword || "",
             optionIndex: slot.optionIndex || 0,
-            type: slot.type || "email"
+            type: slot.type || "email",
+            funnelStage: slot.funnelStage || "",   // 1_AWARENESS / 2_ENGAGEMENT / 3_CONVERSION
+            objective: slot.objective || "",       // stage-justifying objective from topology
+            slotKey: slot.slotKey || "",
           },
           calendar: {
             campaignName: calendar.campaignName || "",
@@ -236,6 +239,9 @@ async function generateWhatsAppForSlot(calendar, slot) {
     suggestedHook: slot.whatsappHook,
     ctaGoal: slot.ctaGoal,
     coreAngle: slot.coreAngle || slotBlueprint.contentAngle || "",
+    funnelStage: slot.funnelStage || "",        // 1_AWARENESS / 2_ENGAGEMENT / 3_CONVERSION
+    objective: slot.objective || "",            // stage-justifying objective from topology
+    slotKey: slot.slotKey || "",                // for per-slot diversity (avoid repeating other slots)
   });
 
   const whatsappCampaign = new WhatsAppCampaign({
