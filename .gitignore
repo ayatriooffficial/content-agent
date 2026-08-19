@@ -1,0 +1,19 @@
+node_modules/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vite
+frontend/dist/
+frontend/node_modules/
+
+# Backend
+backend/node_modules/
+
+.DS_Store
+*.log
+links.md
+
+content_agent.env
