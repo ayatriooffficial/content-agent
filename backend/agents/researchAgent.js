@@ -7,6 +7,7 @@
  * DeepSeek R1: Analytical reasoning, structured insights, contextual gap analysis
  * Groq: Fallback intelligence
  */
+const { generateJSON } = require("./clients/generateJSON");
 const { groqGenerate } = require("./clients/groqClient");
 const { getLocationByCity } = require("../config/locations");
 const safeParseJSON = require("./jsonParser/jsonParser");
@@ -99,10 +100,12 @@ Output EXACTLY this JSON structure (no extra text):
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       console.log(`  [Research Phase 2] Extracting JSON (Attempt ${attempt})...`);
-      const rawResult = await groqGenerate(phase2SystemPrompt, phase2UserPrompt, { 
-        model: "openai/gpt-oss-120b",  // Fast small model — pure JSON extraction task
+      const rawResult = await generateJSON(phase2SystemPrompt, phase2UserPrompt, { 
+        model: "gemini-3.5-flash-lite",  // Primary: native JSON mode
+        groqModel: "openai/gpt-oss-120b", // Fallback: reliable structured JSON
         temperature: 0.3, 
-        maxTokens: 1200  // JSON structure is ~500 tokens
+        maxTokens: 1200,  // JSON structure is ~500 tokens
+        json: true
       });
       
       resultJSON = safeParseJSON(rawResult);

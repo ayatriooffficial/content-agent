@@ -9,7 +9,7 @@
  * - Trust Gap Analysis
  * - SEO Gap Analysis
  */
-const { groqGenerate } = require("./clients/groqClient");
+const { generateJSON } = require("./clients/generateJSON");
 const { PRIMARY_COMPETITORS, getCompetitorContext } = require("../config/competitors");
 const safeParseJSON = require("./jsonParser/jsonParser");
 
@@ -73,10 +73,12 @@ Output EXACTLY this JSON structure (no extra text):
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       console.log(`  [Competitor Agent] Extracting JSON (Attempt ${attempt})...`);
-      const rawResult = await groqGenerate(systemPrompt, userPrompt, { 
-        model: "openai/gpt-oss-20b",  // Fast small model — structured JSON output task
+      const rawResult = await generateJSON(systemPrompt, userPrompt, { 
+        model: "gemini-3.5-flash-lite",  // Primary: native JSON mode
+        groqModel: "openai/gpt-oss-120b", // Fallback: reliable structured JSON
         temperature: 0.5, 
-        maxTokens: 1500  // JSON structure is ~700 tokens
+        maxTokens: 1500,  // JSON structure is ~700 tokens
+        json: true
       });
       
       resultJSON = safeParseJSON(rawResult);

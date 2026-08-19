@@ -15,6 +15,7 @@
  * 6. Location-Specific Demand (Kolkata/Lucknow specific)
  * 7. Previous Success Patterns (from memory)
  */
+const { generateJSON } = require("./clients/generateJSON");
 const { groqGenerate } = require("./clients/groqClient");
 const { getLocationByCity } = require("../config/locations");
 const { getCompetitorContext } = require("../config/competitors");
@@ -310,10 +311,12 @@ Output this exact JSON structure (no extra text):
   try {
     console.log("  [Phase 2] Running analytical scoring via Groq...");
     const rawScoring = await withRetry(() =>
-      groqGenerate(deepseekSystemPrompt, deepseekUserPrompt, {
-        model: "openai/gpt-oss-120b",
+      generateJSON(deepseekSystemPrompt, deepseekUserPrompt, {
+        model: "gemini-3.5-flash-lite",  // Primary: native JSON mode
+        groqModel: "openai/gpt-oss-120b", // Fallback: reliable structured scoring JSON
         temperature: 0.2,
-        maxTokens: 1500  // Scoring JSON is ~600 tokens
+        maxTokens: 1500,  // Scoring JSON is ~600 tokens
+        json: true
       })
     );
 

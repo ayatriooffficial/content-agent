@@ -94,7 +94,7 @@ Respond EXACTLY in JSON:
           const rawFeedback = await groqGenerate(
             "You are a harsh editorial reviewer for accounting education content. You expect psychological depth, practical value, and emotional resonance. Output valid JSON only.",
             prompt,
-            { model: "openai/gpt-oss-20b", temperature: 0.1, maxTokens: 600 }  // Scoring JSON: 9 numbers + array
+            { model: "openai/gpt-oss-20b", temperature: 0.1, maxTokens: 600, json: true }  // Scoring JSON: 9 numbers + array
           );
           
           feedback = safeParseJSON(rawFeedback);

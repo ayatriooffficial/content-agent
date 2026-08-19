@@ -1,4 +1,4 @@
-const { groqGenerate } = require("./clients/groqClient");
+const { generateJSON } = require("./clients/generateJSON");
 const safeParseJSON = require("./jsonParser/jsonParser");
 
 /**
@@ -7,10 +7,17 @@ const safeParseJSON = require("./jsonParser/jsonParser");
  * with location intelligence to decide: final strategy, emotional angle, and content direction.
  */
 async function orchestratorAgent(persona, research, competitor, memory, domainResult) {
-  const targetLocation = persona.targetLocation || research.targetLocation || "Kolkata";
+  const targetLocation = persona.targetLocation || research.targetLocation || "India";
 
-  const prompt = `You are the Chief Content Strategist for an ACCOUNTING & FINANCE education brand targeting students in ${targetLocation}, India. You are the "central brain" that synthesizes all intelligence into a precise content strategy.
+  // Fetch LIVE website data so the blueprint revolves around the real offers
+  const { getWebsiteContext } = require("../services/websiteContext");
+  const website = await getWebsiteContext();
+  const websiteContextText = website?.context
+    ? `\n=== LIVE WEBSITE DATA (Charters Union) — USE THIS AS THE PRIMARY SOURCE OF TRUTH ===\n${website.context}\n`
+    : "";
 
+  const prompt = `You are the Chief Content Strategist for CHARTES UNION OF BUSINESS — an industry-led business education brand offering CBA™ (Certified Business Accountant), DGM™ (Digital Growth & Marketing), and TBM™ (Technology & Business Management) programs.
+${websiteContextText}
 === DOMAIN POSITIONING ===
 Industry: ${domainResult.industry}
 Domain: ${domainResult.domain}
@@ -50,17 +57,18 @@ Successful Strategies: ${(memory.emotionalStrategies || []).slice(-3).join(", ")
 
 === YOUR TASK ===
 Synthesize ALL intelligence above into a content blueprint. The content must:
-1. Address the specific persona's emotional reality IN ${targetLocation}
-2. Exploit competitor blind spots and SEO gaps
-3. Answer the search queries they're actually asking
-4. Build trust using the signals they need
-5. Include ${targetLocation}-specific references and context
+1. Revolve around the LIVE WEBSITE DATA — the real Charters Union programs (CBA/DGM/TBM), their fees, durations, placements, faculty, and testimonials. Do NOT invent programs or stats.
+2. Address the specific persona's emotional reality in ${targetLocation}
+3. Exploit competitor blind spots and SEO gaps
+4. Answer the search queries they're actually asking
+5. Build trust using the signals they need
 6. NOT repeat any previous titles
 7. Target localized SEO keywords
 
 CRITICAL RULES:
 - Output ONLY valid JSON. No markdown, no prose, no code fences.
 - All array fields must be actual JSON arrays of strings.
+- The "category" field must be one of: BUSINESS, MARKETING, TECHNOLOGY, CAREER, ACCOUNTING, FINANCE
 
 Output EXACTLY this JSON structure (no extra text):
 {
@@ -112,10 +120,10 @@ Output EXACTLY this JSON structure (no extra text):
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       console.log(`  [Orchestrator Agent] Extracting JSON blueprint (Attempt ${attempt})...`);
-      const rawResult = await groqGenerate(
-        `You are a strategic content brain for accounting education targeting ${targetLocation}. You combine psychology, research, competitor gaps, and memory into a precise content blueprint. Every decision must be data-driven and psychologically grounded. Focus exclusively on accounting, finance, GST, Tally, taxation, and commerce career content. Always include location-specific context. Output STRICT JSON only.`,
+      const rawResult = await generateJSON(
+        `You are a strategic content brain for Charters Union of Business — the CBA/DGM/TBM education brand. You combine the LIVE website data (programs, fees, placements, faculty, testimonials), psychology, research, competitor gaps, and memory into a precise content blueprint. Every decision must be data-driven and grounded in the actual website offers. Output STRICT JSON only.`,
         prompt,
-        { model: "openai/gpt-oss-120b", temperature: 0.6, maxTokens: 1200 }  // Blueprint JSON is ~500 tokens
+        { model: "gemini-3.5-flash-lite", groqModel: "openai/gpt-oss-120b", temperature: 0.6, maxTokens: 1200, json: true }  // Blueprint JSON is ~500 tokens
       );
       
       resultJSON = safeParseJSON(rawResult);

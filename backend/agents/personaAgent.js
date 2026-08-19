@@ -67,7 +67,8 @@ Output EXACTLY this JSON structure (no extra text):
       const rawResult = await groqGenerate(systemPrompt, userPrompt, { 
         model: "openai/gpt-oss-120b",
         temperature: 0.7, 
-        maxTokens: 2000  // Persona JSON is ~900 tokens
+        maxTokens: 2000,  // Persona JSON is ~900 tokens
+        json: true
       });
       
       resultJSON = safeParseJSON(rawResult);

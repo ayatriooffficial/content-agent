@@ -12,19 +12,28 @@ function joinList(value, fallback = "") {
 }
 
 function buildFallbackWhatsApp(blueprint, persona, research, competitor, blogResult, context = {}) {
-  const headline = blueprint.blogTitle
-    ? `New insights on ${blueprint.blogTitle}`
-    : "A practical update for your audience";
+  // Slot-aware fallback: prefer the approved hook/title from the calendar
+  // so even when AI fails, each slot's message is about ITS OWN topic.
+  const approvedHook = context.suggestedHook || context.whatsappHook || "";
+  const headline = approvedHook
+    ? approvedHook
+    : blueprint.blogTitle
+      ? `New insights on ${blueprint.blogTitle}`
+      : "A practical update for your audience";
 
   const ctaText = context.ctaText || "Read the full article";
   const ctaUrlPath = context.ctaUrlPath || "/blogs";
+
+  const angle = context.coreAngle || blueprint.contentDirection || blueprint.contentAngle || "";
 
   return {
     campaignType: context.campaignType || "blog_promotion",
     audienceSegment: context.audienceCategory || persona.buyerPersona || "Accounting audience",
     headline,
     opening: `Built for ${persona.buyerPersona || "your audience"} who want a clearer next step.`,
-    body: `If they are asking about ${joinList(research.aiSearchQueries, "practical accounting guidance")}, this message points them to a focused article that explains the path forward.`,
+    body: angle
+      ? `${angle}${research.aiSearchQueries?.length ? ` If you are asking about ${joinList(research.aiSearchQueries, "practical accounting guidance")}, this message points you to a focused article that explains the path forward.` : ""}`
+      : `If they are asking about ${joinList(research.aiSearchQueries, "practical accounting guidance")}, this message points them to a focused article that explains the path forward.`,
     bulletPoints: normalizeList([
       blueprint.emotionalAngle,
       blueprint.trustBuildingStrategy,
@@ -37,7 +46,7 @@ function buildFallbackWhatsApp(blueprint, persona, research, competitor, blogRes
     whatsappMessage: [
       headline,
       "",
-      blueprint.emotionalHook || "A concise update built from the latest content strategy.",
+      angle || blueprint.emotionalHook || "A concise update built from the latest content strategy.",
       "",
       `Why it matters: ${blueprint.transformationStory || "it gives a practical next step instead of vague advice."}`,
       "",
@@ -56,16 +65,24 @@ function buildFallbackWhatsApp(blueprint, persona, research, competitor, blogRes
 
 async function whatsappGeneratorAgent(blueprint, persona, research, competitor, blogResult, context = {}) {
   const blogTitle = blogResult?.title || blueprint.blogTitle || "";
-  const systemPrompt = `You are a senior WhatsApp campaign strategist for an accounting and finance education brand. Your job is to turn the same strategic intelligence used for long-form content into a short, conversational WhatsApp message that feels human and useful.
 
+  // Fetch LIVE website data so the message revolves around the real offers
+  const { getWebsiteContext } = require("../services/websiteContext");
+  const website = await getWebsiteContext();
+  const websiteContextText = website?.context
+    ? `\n=== LIVE WEBSITE DATA (Charters Union) — USE THIS AS THE PRIMARY SOURCE OF TRUTH ===\n${website.context}\n`
+    : "";
+
+  const systemPrompt = `You are a senior WhatsApp campaign strategist for CHARTES UNION OF BUSINESS — an industry-led business education brand offering CBA™ (Certified Business Accountant), DGM™ (Digital Growth & Marketing), and TBM™ (Technology & Business Management).
+${websiteContextText}
 CRITICAL RULES:
 - Output ONLY valid JSON. No markdown, no prose, no code fences.
 - Keep the message concise, conversational, and mobile-friendly.
-- Do not invent stats, guarantees, or unsupported claims.
+- Ground every claim in the LIVE WEBSITE DATA (programs, fees, placements, faculty, testimonials). Do NOT invent stats, guarantees, or unsupported claims.
 - Do not mention city or state names in the message body.
 - All array fields must be actual JSON arrays of strings.`;
 
-  const userPrompt = `Create a WhatsApp campaign that promotes the newly generated blog content to the same audience.
+  const userPrompt = `Create a WhatsApp campaign for Charters Union of Business that promotes its real programs (CBA/DGM/TBM) to the same audience.
 
 === STRATEGIC BLUEPRINT ===
 Blog Title: ${blogTitle}
@@ -131,7 +148,7 @@ Output EXACTLY this JSON structure:
     raw = await groqGenerate(
       "You are a concise WhatsApp strategist for accounting education content. You transform strategic blog intelligence into a compact, persuasive mobile message that feels human and specific.",
       userPrompt,
-      { model: "openai/gpt-oss-120b", temperature: 0.65, maxTokens: 2200 }
+      { model: "openai/gpt-oss-120b", temperature: 0.65, maxTokens: 4000, json: true }
     );
   } catch (err) {
     console.error("WhatsApp Generator Agent — Groq generation failed:", err.message);

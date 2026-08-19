@@ -21,38 +21,102 @@
  */
 
 const { CAMPAIGN_TOPOLOGY } = require("./campaignTopology");
-const { groqGenerate } = require("../clients/groqClient");
+const { generateJSON } = require("../clients/generateJSON");
 const safeParseJSON = require("../jsonParser/jsonParser");
 
 // Distinct "voice" each option in a 3-option set must take. Used both to steer
 // the LLM and to regenerate a fallback option when two options collide.
 const OPTION_STYLES = ["standard", "creative", "urgency"];
 
-function buildDefaultOptionSet(type, seedData = {}) {
+// Deterministic per-slot variation pool so fallback options are NOT identical
+// across slots (each slot seeds from its slotKey/dayOffset). Keeps the same
+// 3-style structure but makes the fallback content genuinely slot-specific.
+function slotSeed(slotKey = "", dayOffset = 0) {
+  const str = `${slotKey}|${dayOffset}`;
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+const FALLBACK_TITLE_POOL = [
+  "Your Career Growth Blueprint, Simplified",
+  "The Practical Skills Employers Actually Want",
+  "How to Stand Out in a Competitive Job Market",
+  "A Straightforward Path to a Stronger Career",
+  "The Gap Between Degrees and Real-World Jobs",
+  "Why Practical Training Beats Theory Alone",
+];
+
+const FALLBACK_SUBJECT_POOL = [
+  "A Practical Step Toward Your Career Goal",
+  "Skills That Pay Off in Today's Market",
+  "Your Next Career Move, Made Clearer",
+  "The Training Employers Notice",
+  "Building Real Career Confidence",
+  "A Short, Useful Career Update",
+];
+
+const FALLBACK_HOOK_POOL = [
+  "Quick insight: skills matter more than degrees.",
+  "Real training, real career confidence.",
+  "A smarter way to grow your career.",
+  "Practical skills for a stronger future.",
+  "The career edge you've been looking for.",
+  "Small step today, bigger career tomorrow.",
+];
+
+const FALLBACK_ANGLE_POOL = [
+  "Build awareness with a clear, useful insight that feels timely and relevant.",
+  "Make the audience feel the problem is real through a narrative hook, then show the solution is easy to act on.",
+  "Use an urgency-driven angle that highlights scarcity or timeliness while keeping the CTA sharp.",
+];
+
+function buildDefaultOptionSet(type, seedData = {}, slotKey = "", dayOffset = 0) {
   const base = seedData || {};
+  const seed = slotSeed(slotKey, dayOffset);
+  const poolPick = (arr, offset) => arr[(seed + offset) % arr.length];
+  const rotate = (arr, n) => (Array.isArray(arr) && arr.length ? [...arr.slice(n), ...arr.slice(0, n)] : arr);
+
+  const titleA = poolPick(FALLBACK_TITLE_POOL, 0);
+  const titleB = poolPick(FALLBACK_TITLE_POOL, 2);
+  const titleC = poolPick(FALLBACK_TITLE_POOL, 4);
+
+  const subjectA = poolPick(FALLBACK_SUBJECT_POOL, 0);
+  const subjectB = poolPick(FALLBACK_SUBJECT_POOL, 2);
+  const subjectC = poolPick(FALLBACK_SUBJECT_POOL, 4);
+
+  const hookA = poolPick(FALLBACK_HOOK_POOL, 0);
+  const hookB = poolPick(FALLBACK_HOOK_POOL, 2);
+  const hookC = poolPick(FALLBACK_HOOK_POOL, 4);
+
+  const angleA = poolPick(FALLBACK_ANGLE_POOL, 0);
+  const angleB = poolPick(FALLBACK_ANGLE_POOL, 1);
+  const angleC = poolPick(FALLBACK_ANGLE_POOL, 2);
 
   if (type === "blog") {
     return [
       {
         style: "standard",
-        title: base.title || "A Practical Growth Playbook for Modern Marketers",
-        primaryKeyword: base.primaryKeyword || "content marketing strategy",
-        gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? base.gapKeywords : ["digital marketing", "lead generation"],
-        coreAngle: base.coreAngle || "A direct, practical strategy that improves visibility and helps the audience act faster."
+        title: base.title || titleA,
+        primaryKeyword: base.primaryKeyword || "career growth strategy",
+        gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? base.gapKeywords : ["career growth", "practical skills"],
+        coreAngle: base.coreAngle || angleA
       },
       {
         style: "creative",
-        title: "The Real Story Behind Sustainable Business Growth",
-        primaryKeyword: "local business growth",
-        gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? [...base.gapKeywords].reverse() : ["customer acquisition", "brand authority"],
-        coreAngle: "A narrative-driven angle that turns search traffic into higher-intent engagement through a relatable story."
+        title: titleB,
+        primaryKeyword: "practical career training",
+        gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? rotate(base.gapKeywords, 1) : ["job readiness", "skill development"],
+        coreAngle: angleB
       },
       {
         style: "urgency",
-        title: "Why This Growth Move Can't Wait Any Longer",
-        primaryKeyword: "expert marketing insights",
-        gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? base.gapKeywords.slice(1).concat(base.gapKeywords[0]) : ["content strategy", "careers marketing"],
-        coreAngle: "An urgency-led, data-backed angle that earns trust fast and pushes the reader to act now, not later."
+        title: titleC,
+        primaryKeyword: "career advancement tips",
+        gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? rotate(base.gapKeywords, 2) : ["career planning", "professional growth"],
+        coreAngle: angleC
       }
     ];
   }
@@ -61,24 +125,24 @@ function buildDefaultOptionSet(type, seedData = {}) {
     return [
       {
         style: "standard",
-        subjectLine: base.subjectLine || "A Sharper Way to Reach Your Audience",
-        previewText: base.previewText || "A practical, easy-to-scan update with real value for your audience.",
-        gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? base.gapKeywords : ["email funnel", "customer education"],
-        coreAngle: base.coreAngle || "Build awareness with a clear, useful insight that feels timely and relevant."
+        subjectLine: base.subjectLine || subjectA,
+        previewText: base.previewText || "A practical, easy-to-scan update with real value for your career.",
+        gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? base.gapKeywords : ["career growth", "practical skills"],
+        coreAngle: base.coreAngle || angleA
       },
       {
         style: "creative",
-        subjectLine: "Here's a Story Worth Sharing...",
-        previewText: "A short, human anecdote that leads naturally into the offer.",
-        gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? [...base.gapKeywords].reverse() : ["buyer motivation", "decision support"],
-        coreAngle: "Make the audience feel the problem is real through a narrative hook, then show the solution is easy to act on."
+        subjectLine: subjectB,
+        previewText: "A short, human story that leads naturally into the next step.",
+        gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? rotate(base.gapKeywords, 1) : ["career stories", "skill building"],
+        coreAngle: angleB
       },
       {
         style: "urgency",
-        subjectLine: "Don't Miss This Limited-Time Update",
-        previewText: "A time-boxed, benefit-forward email built to convert now.",
-        gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? base.gapKeywords.slice(1).concat(base.gapKeywords[0]) : ["brand trust", "lead engagement"],
-        coreAngle: "Use an urgency-driven angle that highlights scarcity or timeliness while keeping the CTA sharp."
+        subjectLine: subjectC,
+        previewText: "A time-boxed, benefit-forward update built to help you act.",
+        gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? rotate(base.gapKeywords, 2) : ["career deadlines", "upskilling"],
+        coreAngle: angleC
       }
     ];
   }
@@ -86,20 +150,20 @@ function buildDefaultOptionSet(type, seedData = {}) {
   return [
     {
       style: "standard",
-      whatsappHook: base.whatsappHook || "Quick insight: less noise, more action.",
-      gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? base.gapKeywords : ["mobile engagement", "quick win"],
-      ctaGoal: base.ctaGoal || "spark reply and drive a simple next step"
+      whatsappHook: base.whatsappHook || hookA,
+      gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? base.gapKeywords : ["career growth", "quick win"],
+      ctaGoal: base.ctaGoal || "spark a reply and drive a simple next step"
     },
     {
       style: "creative",
-      whatsappHook: "True story from the field 👇",
-      gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? [...base.gapKeywords].reverse() : ["audience pain points", "thought leadership"],
+      whatsappHook: hookB,
+      gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? rotate(base.gapKeywords, 1) : ["career stories", "thought leadership"],
       ctaGoal: "keep the conversation moving with a light, curiosity-driven CTA"
     },
     {
       style: "urgency",
-      whatsappHook: "⏳ This closes soon — don't miss it",
-      gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? base.gapKeywords.slice(1).concat(base.gapKeywords[0]) : ["social proof", "lead response"],
+      whatsappHook: hookC,
+      gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? rotate(base.gapKeywords, 2) : ["social proof", "lead response"],
       ctaGoal: "create urgency and encourage an immediate reply"
     }
   ];
@@ -337,6 +401,14 @@ async function runContentCalendarAgent(marketResearchData = {}, startDateISO = n
   const blueprint = normalizedContext.blueprint || {};
   const fallbackMarketContext = normalizedContext.marketResearchData || normalizedContext;
 
+  // 2. Fetch the website's LIVE data (courses, programs, faculty, testimonials)
+  //    so all generated content revolves around the actual Charters Union offers.
+  const { getWebsiteContext } = require("../../services/websiteContext");
+  const website = await getWebsiteContext();
+  const websiteContextText = website?.context
+    ? `\n=== LIVE WEBSITE DATA (Charters Union) — USE THIS AS THE PRIMARY SOURCE OF TRUTH ===\n${website.context}\n`
+    : "";
+
   // 1. Build System & User Prompts
   const systemPrompt = `You are a Chief Content Officer and SEO/Funnel Strategist.
 Your job is to generate a high-converting 15-day Content Calendar matrix based on the full campaign brief, not just a generic content prompt.
@@ -349,7 +421,7 @@ STRICT OPERATIONAL RULES:
    - EMAILS: Follow the 3-stage funnel — Stage 1 (Awareness, Day 1): educate, NO enrollment push; Stage 2 (Engagement, Day 2): proof + interaction (placement/faculty/ROI, invite reply); Stage 3 (Conversion, Day 3): clear CTA + urgency (batch deadline, apply now) without fake scarcity.
    - WHATSAPP: Follow the same 3-stage funnel with mobile-first hook formats — Stage 1 hooks curiosity (no hard sell), Stage 2 delivers micro-proof + invites reply, Stage 3 pushes a direct, honest CTA.
 4. Extract long-tail gap keywords relevant to local market needs.
-5. Use the provided business context, persona, research, competitor signals, memory insights, and orchestrator blueprint as the actual source of truth for the campaign arc.
+5. Use the LIVE WEBSITE DATA as the PRIMARY source of truth for the campaign arc — the courses (CBA/DGM/TBM), programs, fees, placements, faculty, and testimonials must come from there. Do NOT invent programs, fees, or stats that are not in the website data. Supplement with persona/research/competitor signals only for tone and angle.
 6. OPTION DIVERSITY (STRICT): You MUST generate exactly 3 genuinely different options for every slot's 'options' array:
    - Option A = standard/direct framing.
    - Option B = creative/story-driven framing.
@@ -362,7 +434,7 @@ STRICT OPERATIONAL RULES:
    You will be given a day-by-day outline of every slot in the campaign below — use it to plan this progression before writing.`;
 
   const narrativeOutline = buildNarrativeOutline(CAMPAIGN_TOPOLOGY);
-  const CONTEXT_LIMIT = 2500; // per-context truncation — keeps the request under Groq's size limit
+  const CONTEXT_LIMIT = 600; // per-context truncation — keeps the request under Groq's 8k token limit
   const safeStringify = (value) => {
     if (value === undefined || value === null) return "null";
     try {
@@ -373,7 +445,7 @@ STRICT OPERATIONAL RULES:
   };
 
   const userPrompt = `Generate strategy metadata for each slot in the campaign topology below using the actual campaign context.
-
+${websiteContextText}
 === BUSINESS CONTEXT ===
 ${safeStringify(businessContext)}
 
@@ -397,119 +469,144 @@ ${safeStringify(fallbackMarketContext)}
 
 === 15-DAY NARRATIVE FLOW (plan progression across these before writing any single slot) ===
 ${narrativeOutline}
+`;
 
-=== CAMPAIGN TOPOLOGY SLOTS ===
-${JSON.stringify(
-  CAMPAIGN_TOPOLOGY.map(({ slotKey, channel, type, dayOffset, funnelStage, slot }) => ({
-    slotKey, channel, type, dayOffset, funnelStage, slot,
-  })),
-  null,
-  2
-)}
-
-=== REQUIRED JSON OUTPUT SCHEMA ===
-Return ONLY a JSON object formatted exactly like this:
-{
-  "campaignName": "Descriptive Strategy Title",
+  try {
+    // 2. Generate the calendar in 3 CHUNKED calls (one per channel) so each
+    //    response fits comfortably under the free-tier 8k token limit.
+    const channelSchemas = {
+      blogs: {
+        promptKey: "blogs",
+        outputField: "blogs",
+        schema: `{
   "blogs": [
     {
       "slotKey": "blog_1",
-      "title": "SEO Optimized Blog Title",
-      "primaryKeyword": "main kw",
-      "gapKeywords": ["gap kw 1", "gap kw 2"],
-      "coreAngle": "Strategic angle explaining why this article ranks and attracts search traffic, and how it connects to the day before/after it in this channel",
+      "title": "string",
+      "primaryKeyword": "string",
+      "gapKeywords": ["kw1","kw2"],
+      "coreAngle": "string",
       "options": [
-        {
-          "title": "Option A title",
-          "primaryKeyword": "option a kw",
-          "gapKeywords": ["gap kw 1", "gap kw 2"],
-          "coreAngle": "Option A angle (standard/direct)"
-        },
-        {
-          "title": "Option B title",
-          "primaryKeyword": "option b kw",
-          "gapKeywords": ["gap kw 3", "gap kw 4"],
-          "coreAngle": "Option B angle (creative/story-driven, genuinely different topic framing from A)"
-        },
-        {
-          "title": "Option C title",
-          "primaryKeyword": "option c kw",
-          "gapKeywords": ["gap kw 5", "gap kw 6"],
-          "coreAngle": "Option C angle (analytical/urgency-driven, genuinely different topic framing from A and B)"
-        }
-      ]
-    }
-  ],
-  "emails": [
-    {
-      "slotKey": "email_1",
-      "subjectLine": "Compelling Subject Line",
-      "previewText": "Opening preview snippet",
-      "gapKeywords": ["gap kw 1", "gap kw 2"],
-      "coreAngle": "Strategic angle driving awareness or engagement, and how it builds on the prior email in this channel",
-      "options": [
-        {
-          "subjectLine": "Option A subject",
-          "previewText": "Option A preview",
-          "gapKeywords": ["gap kw 1", "gap kw 2"],
-          "coreAngle": "Option A angle (standard/direct)"
-        },
-        {
-          "subjectLine": "Option B subject",
-          "previewText": "Option B preview",
-          "gapKeywords": ["gap kw 3", "gap kw 4"],
-          "coreAngle": "Option B angle (creative/story-driven, genuinely different from A)"
-        },
-        {
-          "subjectLine": "Option C subject",
-          "previewText": "Option C preview",
-          "gapKeywords": ["gap kw 5", "gap kw 6"],
-          "coreAngle": "Option C angle (analytical/urgency-driven, genuinely different from A and B)"
-        }
-      ]
-    }
-  ],
-  "whatsappMessages": [
-    {
-      "slotKey": "wa_1",
-      "whatsappHook": "First 1-2 lines formatted for mobile attention span",
-      "gapKeywords": ["gap kw 1", "gap kw 2"],
-      "ctaGoal": "Intended action (e.g. spark reply, vote in poll, drive discussion)",
-      "options": [
-        {
-          "whatsappHook": "Option A hook",
-          "gapKeywords": ["gap kw 1", "gap kw 2"],
-          "ctaGoal": "Option A CTA"
-        },
-        {
-          "whatsappHook": "Option B hook",
-          "gapKeywords": ["gap kw 3", "gap kw 4"],
-          "ctaGoal": "Option B CTA"
-        },
-        {
-          "whatsappHook": "Option C hook",
-          "gapKeywords": ["gap kw 5", "gap kw 6"],
-          "ctaGoal": "Option C CTA"
-        }
+        { "title": "A title", "primaryKeyword": "kw", "gapKeywords": ["kw"], "coreAngle": "A angle" },
+        { "title": "B title", "primaryKeyword": "kw", "gapKeywords": ["kw"], "coreAngle": "B angle" },
+        { "title": "C title", "primaryKeyword": "kw", "gapKeywords": ["kw"], "coreAngle": "C angle" }
       ]
     }
   ]
-}`;
+}`
+      },
+      emails: {
+        promptKey: "emails",
+        outputField: "emails",
+        schema: `{
+  "emails": [
+    {
+      "slotKey": "email_1",
+      "subjectLine": "string",
+      "previewText": "string",
+      "gapKeywords": ["kw1","kw2"],
+      "coreAngle": "string",
+      "options": [
+        { "subjectLine": "A subject", "previewText": "A preview", "gapKeywords": ["kw"], "coreAngle": "A angle" },
+        { "subjectLine": "B subject", "previewText": "B preview", "gapKeywords": ["kw"], "coreAngle": "B angle" },
+        { "subjectLine": "C subject", "previewText": "C preview", "gapKeywords": ["kw"], "coreAngle": "C angle" }
+      ]
+    }
+  ]
+}`
+      },
+      whatsappMessages: {
+        promptKey: "whatsappMessages",
+        outputField: "whatsappMessages",
+        schema: `{
+  "whatsappMessages": [
+    {
+      "slotKey": "wa_1",
+      "whatsappHook": "string",
+      "gapKeywords": ["kw1","kw2"],
+      "ctaGoal": "string",
+      "options": [
+        { "whatsappHook": "A hook", "gapKeywords": ["kw"], "ctaGoal": "A cta" },
+        { "whatsappHook": "B hook", "gapKeywords": ["kw"], "ctaGoal": "B cta" },
+        { "whatsappHook": "C hook", "gapKeywords": ["kw"], "ctaGoal": "C cta" }
+      ]
+    }
+  ]
+}`
+      },
+    };
 
-  try {
-    // 2. Call LLM (Using Groq/Llama-3.3-70b or Claude/GPT-4o equivalent)
-    const rawOutput = await groqGenerate(systemPrompt, userPrompt, {
-      model: "openai/gpt-oss-20b",
-      temperature: 0.6,
-      maxTokens: 3000
-    });
+    const mergedStrategy = { campaignName: "15-Day Multi-Channel Campaign", blogs: [], emails: [], whatsappMessages: [] };
 
-    // 3. Parse JSON safely
-    const parsed = safeParseJSON(rawOutput);
-    const llmStrategy = mergeStrategyWithTopology(parsed);
+    for (const [field, cfg] of Object.entries(channelSchemas)) {
+      const channelTopo = CAMPAIGN_TOPOLOGY.filter((s) => s.channel ===
+        (field === "blogs" ? "WEBSITE" : field === "emails" ? "EMAIL" : "WHATSAPP"));
+
+      // Sub-chunk: generate 3 slots at a time so each call stays well under
+      // the 8k token budget (input + output). 6-slot channels = 2 calls.
+      const SLOTS_PER_CALL = 3;
+      const channelList = [];
+
+      for (let ci = 0; ci < channelTopo.length; ci += SLOTS_PER_CALL) {
+        const subTopo = channelTopo.slice(ci, ci + SLOTS_PER_CALL);
+        const slimPrompt = `You are a Chief Content Officer for Charters Union of Business (CBA/DGM/TBM programs).
+${websiteContextText}
+
+=== 15-DAY NARRATIVE FLOW ===
+${narrativeOutline}
+
+=== GENERATE ONLY THE "${field.toUpperCase()}" CHANNEL (part ${Math.floor(ci / SLOTS_PER_CALL) + 1}) ===
+Use EXACTLY these slotKeys (one entry per slotKey, each with 3 distinct options A/B/C):
+${JSON.stringify(subTopo.map((s) => ({ slotKey: s.slotKey, dayOffset: s.dayOffset, funnelStage: s.funnelStage, slot: s.slot })), null, 2)}
+
+STRICT UNIQUENESS RULES:
+- EVERY slotKey MUST have a DIFFERENT title/subject/hook from every other slotKey in this channel. NO repetition across slots.
+- The subject/hook must MATCH the slot's funnelStage: 1_AWARENESS = educational/problem-intro, 2_ENGAGEMENT = proof/outcomes/ROI, 3_CONVERSION = urgency/CTA/deadline.
+- The 3 options within each slot (A/B/C) must also be genuinely different from each other.
+- Ground content in the LIVE WEBSITE DATA (Charters Union CBA/DGM/TBM programs, fees, placements, faculty).
+
+Output ONLY this JSON shape (no other keys):
+${cfg.schema}`;
+
+        const rawChannel = await generateJSON(systemPrompt, slimPrompt, {
+          model: "gemini-3.5-flash-lite",  // Primary: native JSON mode, strict option diversity
+          groqModel: "openai/gpt-oss-120b", // Fallback: reliable structured JSON
+          temperature: 0.6,
+          maxTokens: 4500,  // 3 slots × 3 options each needs room to complete
+          json: true,
+        });
+
+        // Small pause between sub-chunks so each gets a fresh rate-limit window
+        await new Promise((r) => setTimeout(r, 8000));
+
+        // Strip qwen <think>...</think> wrappers + anything before first brace
+        let cleanedRaw = String(rawChannel || "")
+          .replace(/<think>[\s\S]*?<\/think>/g, "")
+          .replace(/<think>[\s\S]*/g, "")
+          .replace(/^```json|```$/g, "")
+          .trim();
+        const firstBrace = cleanedRaw.indexOf("{");
+        if (firstBrace > 0) cleanedRaw = cleanedRaw.slice(firstBrace);
+
+        const parsedChannel = safeParseJSON(cleanedRaw);
+        const subList = parsedChannel?.[cfg.outputField] || parsedChannel?.[cfg.promptKey] || [];
+        if (Array.isArray(subList)) {
+          channelList.push(...subList);
+          console.log(`   ↳ ${field} part ${Math.floor(ci / SLOTS_PER_CALL) + 1}: ${subList.length} slots`);
+        } else {
+          console.log(`   ⚠️ ${field} part ${Math.floor(ci / SLOTS_PER_CALL) + 1}: unparseable — head: ${cleanedRaw.slice(0, 150)}`);
+        }
+      }
+
+      if (channelList.length) {
+        mergedStrategy[field] = channelList;
+        console.log(`   ↳ ${field}: TOTAL ${channelList.length} slots`);
+      }
+    }
+
+    const llmStrategy = mergeStrategyWithTopology(mergedStrategy);
 
     if (!Array.isArray(llmStrategy.blogs) || !Array.isArray(llmStrategy.emails) || !Array.isArray(llmStrategy.whatsappMessages)) {
-      console.error("[Calendar Agent] Raw LLM payload rejected:", JSON.stringify(rawOutput).slice(0, 2000));
       throw new Error("Invalid output layout from LLM: Missing 'blogs', 'emails', or 'whatsappMessages' arrays.");
     }
 
@@ -541,6 +638,49 @@ function normalizeOptionList(options, fallbackValues, fallbackBuilder, type, slo
         ...(option || {}),
         optionIndex: index,
       }));
+
+  // ALWAYS guarantee 3 options per slot (the admin picks one of A/B/C).
+  // If the LLM gave fewer than 3 (or none), pad with the slot-seeded
+  // distinct fallback set so every slot offers 3 genuinely different takes.
+  const seededSet = buildDefaultOptionSet(type, fallbackValues, slotKey, dayOffset);
+  while (built.length < 3) {
+    const idx = built.length;
+    const seeded = seededSet[idx] || seededSet[idx % seededSet.length];
+    built.push({
+      ...fallbackBuilder({ ...fallbackValues, ...seeded, optionIndex: idx }),
+      ...seeded,
+      optionIndex: idx,
+    });
+  }
+
+  // Ensure options that inherit the top-level fallback value (because the LLM
+  // didn't give them their own field) still get DISTINCT content per slot:
+  // re-seed any option whose primary field equals the shared fallback value
+  // with the slot-seeded pool so all 3 options in a slot genuinely differ.
+  for (let i = 0; i < built.length; i++) {
+    const opt = built[i];
+    const primary = type === "blog"
+      ? opt.title
+      : type === "email"
+        ? opt.subjectLine
+        : opt.whatsappHook;
+    const shared = type === "blog"
+      ? fallbackValues.title
+      : type === "email"
+        ? fallbackValues.subjectLine
+        : fallbackValues.whatsappHook;
+    if (shared && primary === shared) {
+      // Replace with the slot-seeded distinct fallback for this index
+      const seeded = seededSet[i] || seededSet[i % seededSet.length];
+      if (seeded) {
+        built[i] = {
+          ...opt,
+          ...seeded,
+          optionIndex: opt.optionIndex,
+        };
+      }
+    }
+  }
 
   // Guarantee the final 3 options actually differ from each other, even if
   // the LLM (or the fallback path above) produced near-identical text.

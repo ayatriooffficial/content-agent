@@ -45,7 +45,7 @@ const blogSlotSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["PENDING_ADMIN_APPROVAL", "APPROVED", "REJECTED", "GENERATED"],
+      enum: ["PENDING_ADMIN_APPROVAL", "APPROVED", "REJECTED", "GENERATED", "PUBLISHED"],
       default: "PENDING_ADMIN_APPROVAL",
     },
     // Reference to the generated Blog document after approval
@@ -107,7 +107,7 @@ const emailSlotSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["PENDING_ADMIN_APPROVAL", "APPROVED", "REJECTED", "GENERATED"],
+      enum: ["PENDING_ADMIN_APPROVAL", "APPROVED", "REJECTED", "GENERATED", "PUBLISHED"],
       default: "PENDING_ADMIN_APPROVAL",
     },
     // Reference to the generated EmailCampaign document after approval
@@ -165,7 +165,7 @@ const whatsappSlotSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["PENDING_ADMIN_APPROVAL", "APPROVED", "REJECTED", "GENERATED"],
+      enum: ["PENDING_ADMIN_APPROVAL", "APPROVED", "REJECTED", "GENERATED", "PUBLISHED"],
       default: "PENDING_ADMIN_APPROVAL",
     },
     // Reference to the generated WhatsAppCampaign document after approval

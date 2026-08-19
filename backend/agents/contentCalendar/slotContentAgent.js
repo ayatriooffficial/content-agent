@@ -235,6 +235,7 @@ async function generateWhatsAppForSlot(calendar, slot) {
     campaignType: "blog_promotion",
     suggestedHook: slot.whatsappHook,
     ctaGoal: slot.ctaGoal,
+    coreAngle: slot.coreAngle || slotBlueprint.contentAngle || "",
   });
 
   const whatsappCampaign = new WhatsAppCampaign({
