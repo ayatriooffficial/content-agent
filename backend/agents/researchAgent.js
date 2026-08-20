@@ -33,10 +33,10 @@ Live Situations: ${(personaProfile.liveSituations || []).join("; ")}
 Location: ${targetLocation}
 
 === LOCATION CONTEXT ===
-${locationData ? `
-City: ${locationData.city}, ${locationData.state}
-Economy: ${locationData.economicProfile}
-Education Hub: ${locationData.educationHub}
+${locationData && Array.isArray(locationData.searchBehavior) && Array.isArray(locationData.studentPainPoints) ? `
+City: ${locationData.city}, ${locationData.state || ""}
+Economy: ${locationData.economicProfile || ""}
+Education Hub: ${locationData.educationHub || ""}
 Local Search Patterns: ${locationData.searchBehavior.join("; ")}
 Local Pain Points: ${locationData.studentPainPoints.join("; ")}` : `City: ${targetLocation}`}
 

@@ -1,4 +1,4 @@
-const { groqGenerate } = require("./clients/groqClient");
+const { generateBest } = require("./clients/providerRouter");
 const safeParseJSON = require("./jsonParser/jsonParser");
 
 /**
@@ -74,13 +74,25 @@ Respond in this EXACT format (first a JSON metadata block, then the markdown con
   let raw = "";
   try {
     console.log("  [Blog Generator Agent] Generating 1500+ word content...");
-    raw = await groqGenerate(
+    // Blog chain: Groq (gpt-oss-20b, long-form) → NVIDIA (MiniMax M3, 1M ctx) → OpenRouter (GLM 5.2).
+    // NO Gemini — Gemini is Phase-1 only (research/calendar), not content.
+    // maxTokens 3500 keeps us under Groq's 8K TPM so a blog + research never stack into a token cap.
+    raw = await generateBest(
       "You are a master content writer for the Indian accounting education market. Your content feels like a warm, knowledgeable mentor speaking directly to the reader's deepest insecurities and ambitions. Every paragraph drives emotional transformation. Output strict JSON for metadata, followed by markdown content.",
       prompt,
-      { model: "openai/gpt-oss-20b", temperature: 0.7, maxTokens: 5000 }
+      {
+        order: ["Groq", "NVIDIA", "OpenRouter"],
+        groqModel: "openai/gpt-oss-20b",
+        nvidiaModel: "minimaxai/minimax-m3",
+        openRouterModel: "google/gemma-4-26b-a4b-it:free",
+        temperature: 0.7,
+        maxTokens: 3500,
+        json: false,
+        caller: "blog",
+      }
     );
   } catch (err) {
-    console.error("Blog Generator Agent — Groq generation failed:", err.message);
+    console.error("Blog Generator Agent — ALL providers failed:", err.message);
     throw new Error("Content generation failed: " + err.message);
   }
 

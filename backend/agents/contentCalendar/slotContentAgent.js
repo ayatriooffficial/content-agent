@@ -58,6 +58,7 @@ function buildSlotBlueprint(baseBlueprint, overrides = {}) {
  * @returns {Promise<import("mongoose").Document>} saved Blog document
  */
 async function generateBlogForSlot(calendar, slot) {
+  console.log(`\n📝 [Slot Content Agent] Generating BLOG for slot ${slot.slotKey} (stage: ${slot.funnelStage || "SEO"})...`);
   const { persona, research, competitor, blueprint } = await loadPipelineContext(calendar);
 
   const slotBlueprint = buildSlotBlueprint(blueprint, {
@@ -119,6 +120,7 @@ function normalizeRootUrl(rawUrl) {
 }
 
 async function generateEmailForSlot(calendar, slot) {
+  console.log(`\n📧 [Slot Content Agent] Generating EMAIL for slot ${slot.slotKey} (stage: ${slot.funnelStage || "?"})...`);
   const { persona, research, competitor, blueprint } = await loadPipelineContext(calendar);
 
   const slotBlueprint = buildSlotBlueprint(blueprint, {
@@ -129,57 +131,68 @@ async function generateEmailForSlot(calendar, slot) {
   const ROOT = normalizeRootUrl(process.env.ROOT_EMAIL_SERVER || process.env.ROOT_SERVER_URL || "http://127.0.0.1:6001");
   const url = `${ROOT}/api/emails/generate`;
   const pipelineContext = { persona, research, competitor, blueprint };
-
-  let response;
-  try {
-    response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        kind: "intro",
-        name: calendar.campaignName || "Student",
-        email: "",
-        course: slot.coreAngle || "",
-        viewerLevel: "NO_ACTIVITY",
-        session: 1,
-        question: null,
-        suggestedSubject: slot.subjectLine,
-        suggestedPreview: slot.previewText,
-        pipelineRunId: calendar.pipelineRunId || "",
-        calendarId: calendar.calendarId || "",
+  const payload = {
+    kind: "intro",
+    name: calendar.campaignName || "Student",
+    email: "",
+    course: slot.coreAngle || "",
+    viewerLevel: "NO_ACTIVITY",
+    session: 1,
+    question: null,
+    suggestedSubject: slot.subjectLine,
+    suggestedPreview: slot.previewText,
+    pipelineRunId: calendar.pipelineRunId || "",
+    calendarId: calendar.calendarId || "",
+    slotKey: slot.slotKey || "",
+    context: {
+      ...pipelineContext,
+      slot: {
+        ...slot,
+        title: slot.title || "",
+        subjectLine: slot.subjectLine || "",
+        previewText: slot.previewText || "",
+        coreAngle: slot.coreAngle || "",
+        gapKeywords: Array.isArray(slot.gapKeywords) ? slot.gapKeywords : [],
+        primaryKeyword: slot.primaryKeyword || "",
+        optionIndex: slot.optionIndex || 0,
+        type: slot.type || "email",
+        funnelStage: slot.funnelStage || "",   // 1_AWARENESS / 2_ENGAGEMENT / 3_CONVERSION
+        objective: slot.objective || "",       // stage-justifying objective from topology
         slotKey: slot.slotKey || "",
-        context: {
-          ...pipelineContext,
-          slot: {
-            ...slot,
-            title: slot.title || "",
-            subjectLine: slot.subjectLine || "",
-            previewText: slot.previewText || "",
-            coreAngle: slot.coreAngle || "",
-            gapKeywords: Array.isArray(slot.gapKeywords) ? slot.gapKeywords : [],
-            primaryKeyword: slot.primaryKeyword || "",
-            optionIndex: slot.optionIndex || 0,
-            type: slot.type || "email",
-            funnelStage: slot.funnelStage || "",   // 1_AWARENESS / 2_ENGAGEMENT / 3_CONVERSION
-            objective: slot.objective || "",       // stage-justifying objective from topology
-            slotKey: slot.slotKey || "",
-          },
-          calendar: {
-            campaignName: calendar.campaignName || "",
-            audienceCategory: calendar.audienceCategory || "",
-            targetLocation: calendar.targetLocation || "",
-            timeline: calendar.timeline || "",
-            businessContext: calendar.businessContext || {}
-          }
-        },
-      }),
-    });
-  } catch (fetchErr) {
-    console.error(`❌ Root email generation fetch failed for ${url}:`, fetchErr.message);
-    if (fetchErr.cause) {
-      console.error(`🔍 DEBUG - Fetch Cause:`, fetchErr.cause);
+      },
+      calendar: {
+        campaignName: calendar.campaignName || "",
+        audienceCategory: calendar.audienceCategory || "",
+        targetLocation: calendar.targetLocation || "",
+        timeline: calendar.timeline || "",
+        businessContext: calendar.businessContext || {}
+      }
+    },
+  };
+
+  // Retry once on transient failures (all free providers can be briefly down)
+  let response = null;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(60000), // 60s — providers chain can take ~30s
+      });
+      if (response.ok) break;
+      console.warn(`⚠️ Root email generation returned ${response.status} (attempt ${attempt}/2) — retrying...`);
+    } catch (fetchErr) {
+      console.warn(`⚠️ Root email generation fetch failed (attempt ${attempt}/2): ${fetchErr.message}`);
+      if (fetchErr.cause) {
+        console.warn(`🔍 DEBUG - Fetch Cause:`, fetchErr.cause);
+      }
     }
-    throw new Error(`Root email generation failed: fetch to ${url} failed (${fetchErr.message})`);
+    if (attempt === 1) await new Promise(r => setTimeout(r, 3000));
+  }
+
+  if (!response) {
+    throw new Error(`Root email generation failed: fetch to ${url} failed after 2 attempts`);
   }
 
   if (!response.ok) {
@@ -221,6 +234,7 @@ async function generateEmailForSlot(calendar, slot) {
  * @returns {Promise<import("mongoose").Document>} saved WhatsAppCampaign document
  */
 async function generateWhatsAppForSlot(calendar, slot) {
+  console.log(`\n💬 [Slot Content Agent] Generating WHATSAPP for slot ${slot.slotKey} (stage: ${slot.funnelStage || "?"})...`);
   const { persona, research, competitor, blueprint } = await loadPipelineContext(calendar);
 
   const slotBlueprint = buildSlotBlueprint(blueprint, {
