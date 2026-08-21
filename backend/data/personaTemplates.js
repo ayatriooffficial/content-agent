@@ -347,6 +347,354 @@ const PERSONA_TEMPLATES = [
       afterState: "A recognized finance professional with a high-growth career trajectory and increased income.",
       emotionalGoal: "To finally feel that his hard work is being translated into real career success."
     }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 4. DIGITAL MARKETING STUDENT (DGM stream)
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id: "digital-marketing-student",
+    label: "Digital Marketing Student",
+    audienceCategory: "Digital Marketing Student",
+    domains: ["digital marketing", "marketing", "social media", "content", "seo", "performance marketing", "advertising"],
+    program: "DGM", // tied to the Digital Growth & Marketing course
+
+    characterSnapshot: {
+      name: "Anirban",
+      age: 19,
+      region: "Kolkata / Howrah, India",
+      identityHeadline: "The commerce student who thinks 'marketing is cooler than accounting'"
+    },
+
+    voiceOfCustomer: {
+      definingQuote: "\"Everyone says digital marketing is the future — but is it a real job or just an Instagram trend?\"",
+      hiddenInsecurity: "What if I spend money on this and still have no portfolio to show?",
+      commonPhrases: [
+        "I watch marketing reels every day but have no idea where to start",
+        "Is digital marketing actually saturated?",
+        "Can I learn all this from YouTube for free?",
+        "I want a job where I'm not stuck behind a desk doing data entry"
+      ]
+    },
+
+    lifeSituation: {
+      education: "12th commerce or 1st/2nd year of college — still deciding a career, torn between safe (accounting) and exciting (marketing)",
+      income: "Zero or small allowance — fully dependent on parents",
+      familyPressure: "Parents see 'marketing' as vague; they'd rather he do something 'solid' like accounting or banking",
+      financialCondition: "Lower-middle to middle class — a ₹50,000 course needs family approval and a clear ROI story",
+      influenceSystem: "YouTube creators, Instagram pages, WhatsApp groups, elder cousins working in agencies",
+      livingEnvironment: "Phone-first life; consumes reels/shorts constantly; laptop only when he needs to 'actually do something'"
+    },
+
+    psychologyLayer: {
+      identityBelief: "Accounting feels like a trap, marketing feels exciting — but I'm not sure marketing is a 'real' career.",
+      emotionalFrustration: "Every marketing video makes it look easy, but nobody shows the actual steps from zero to a job.",
+      fearOfFailure: "Spending the family's money on a course that turns out to be 'just theory' or an Instagram-certificate scam.",
+      selfWorthIssues: "No skills to show, no portfolio, nothing on his resume except school/college — feels invisible to employers.",
+      successVisualization: "Being the person inside a brand/agency who runs campaigns that actually get results — and being respected for it."
+    },
+
+    painArchitecture: {
+      hiddenFears: [
+        "What if marketing is a bubble and I waste 2 years?",
+        "What if I'm not creative enough for this field?",
+        "What if employers only want people with experience and a portfolio?",
+        "What if AI can do all of this by the time I graduate?"
+      ],
+      liveDailyLifeSituations: [
+        "Watching a 'day in the life of a digital marketer' reel and feeling both inspired and lost.",
+        "Searching 'digital marketing course Kolkata' and getting overwhelmed by 50 institute ads.",
+        "Hearing his parents say 'marketing? that's not a real degree' and having no comeback.",
+        "Starting dozens of free YouTube playlists and never finishing one."
+      ],
+      emotionalTriggers: [
+        "Students like him who built a portfolio and got an agency job within months",
+        "Real numbers: 'This campaign generated X leads' — proof beats theory for him",
+        "Clear step-by-step roadmaps from zero to first marketing job",
+        "The idea of joining a growing industry where creativity + data = value"
+      ]
+    },
+
+    searchArchitecture: {
+      googleSearch: ["best digital marketing course in Kolkata", "digital marketing salary for freshers", "digital marketing course with internship", "is digital marketing a good career"],
+      youtubeSearch: ["digital marketing career explained in hindi", "how to become a digital marketer from zero", "digital marketing course honest review"],
+      aiSearchQueries: ["Is digital marketing saturated in 2026?", "How do I become a digital marketer without a degree?", "What is the salary of a digital marketing fresher in India?"],
+      platformPreference: "YouTube, Instagram, WhatsApp groups, Telegram marketing communities"
+    },
+
+    buyingBehavior: {
+      trustBuildingJourney: "Needs to see real students' campaign work, portfolios, and internship placements — not certificate photos.",
+      emotionalHesitation: "If I ask my parents for ₹50,000 for marketing and it doesn't work, they'll never trust my decisions again.",
+      researchBehavior: "Compares YouTube free-learning vs paid courses obsessively; reads every Google review; watches trial classes.",
+      priceExpectation: "Low to moderate — heavy skepticism against free YouTube content.",
+      purchaseBlockers: ["No portfolio", "Fear it's a trend/bubble", "Parental 'not a real career' objection", "Confusion from too many institutes"],
+      urgencyTriggers: ["Friend getting a marketing internship", "Seeing a brand's Instagram blow up and wanting in", "Parents finally saying 'fine, but it better pay'"]
+    },
+
+    objectionStack: [
+      {
+        visibleObjection: "Can't I learn all this from YouTube for free?",
+        hiddenFear: "I've been collecting free playlists for months and I'm still at zero.",
+        counterResponse: "Highlight live projects, structured mentorship, peer community, internship and portfolio — things no playlist can give."
+      },
+      {
+        visibleObjection: "Isn't digital marketing saturated?",
+        hiddenFear: "What if I join a dying field and waste my family's money?",
+        counterResponse: "Show growth data, AI-tool integration, and real campaign case studies — marketers who use data+AI are in more demand, not less."
+      }
+    ],
+
+    trustArchitecture: {
+      buildsTrust: "Portfolio-building curriculum, real campaign projects, internship support, student results, agency-aligned faculty",
+      destroysTrust: "Certificates-only courses, promise of 'earn lakhs in 30 days', fake follower counts, outdated tactics content",
+      influencesDecisions: "Working marketers on LinkedIn/Instagram, elder cousins in agencies, honest reviews from past students",
+      proofRequired: "Real campaign screenshots (leads/sales), before-after portfolios, placement records, internship stories"
+    },
+
+    contentConsumptionHabits: {
+      platformBehavior: "Reels & shorts-first; follows marketing educators; saves carousels; lurks in Telegram marketing groups.",
+      formatsTrusted: "Case study breakdowns, campaign teardowns, 'from zero to job' journeys, tools walkthroughs (Meta ads, Google, Canva, AI tools)",
+      activeConsumptionTiming: "Evenings and late night — whenever the phone is in his hand",
+      emotionalEngagement: "Engages with content that stops the 'it's a trend' doubt and shows a concrete path."
+    },
+
+    transformationGoal: {
+      beforeState: "A degree with no practical skill, no portfolio, and a nagging fear that marketing is fake.",
+      afterState: "A campaign-ready marketing professional with a real portfolio of work and an internship/agency job.",
+      emotionalGoal: "To prove to his parents — and himself — that marketing is a real, respected, well-paying career."
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 5. DIGITAL MARKETING GRADUATE (DGM stream — Riya-analogue)
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id: "digital-marketing-grad",
+    label: "Digital Marketing Graduate",
+    audienceCategory: "Digital Marketing Graduate",
+    domains: ["digital marketing", "marketing", "career pivot", "bcom", "bba", "fresh graduate", "portfolio", "growth marketing"],
+    program: "DGM",
+
+    characterSnapshot: {
+      name: "Ishita",
+      age: 22,
+      region: "Kolkata / Howrah, India",
+      identityHeadline: "The graduate who realized her degree opens no doors — and chose marketing to build her own"
+    },
+
+    voiceOfCustomer: {
+      definingQuote: "\"My B.Com got me nothing. Every job I see wants 'experience'. Where do I get the experience if no one hires me?\"",
+      hiddenInsecurity: "What if marketing is also a dead end and I end up an assistant with no career?",
+      commonPhrases: [
+        "I have a degree but zero practical skills",
+        "I don't know what actual work in marketing looks like",
+        "Everyone says digital marketing is the future — is it true?",
+        "I need something on my resume that isn't empty"
+      ]
+    },
+
+    lifeSituation: {
+      education: "Final-year or fresh B.Com/BA/BBA graduate — realizes the degree alone doesn't get hired",
+      income: "None or ₹1,000–₹3,000 from tuitions",
+      familyPressure: "Parents want 'a proper job' fast; relatives keep asking 'what are you doing now?'",
+      financialCondition: "Lower-middle to middle class — ₹40–50k investment needs family approval and an honest ROI case",
+      influenceSystem: "LinkedIn (observing), Instagram career pages, YouTube, peers getting internships, job portals",
+      livingEnvironment: "Lives at home; spends hours on Naukri/LinkedIn getting zero callbacks; watches placed classmates' posts with envy"
+    },
+
+    psychologyLayer: {
+      identityBelief: "My degree marked me 'fresher, not employable' — I need a skill that brands actually pay for.",
+      emotionalFrustration: "Endless applications with no replies; nobody explains what employers actually want from a marketer.",
+      fearOfFailure: "Investing family money into a course that is another 'just theory' institute with fake placement promises.",
+      selfWorthIssues: "Feels behind peers; no portfolio; can't even answer 'what is SEO?' in an interview confidently.",
+      successVisualization: "Walking into an agency/MNC with a portfolio of real campaigns she can show and talk about."
+    },
+
+    painArchitecture: {
+      hiddenFears: [
+        "What if I stay unemployed for months after graduation?",
+        "What if marketing requires skills I don't have (design? coding? English fluency)?",
+        "What if the course is full of theory like college was?",
+        "What if my parents are right and this is all a scam?"
+      ],
+      liveDailyLifeSituations: [
+        "Applying to 'digital marketing executive' roles and auto-rejected for '2+ years experience'.",
+        "Googling 'digital marketing course in Kolkata with placement' at 1 AM, overwhelmed by 50 identical ads.",
+        "Feeling a knot when relatives ask about her job plans at family functions.",
+        "Starting a free certification, quitting halfway because 'what's the point'."
+      ],
+      emotionalTriggers: [
+        "Real students from similar colleges with zero experience who got agency jobs",
+        "Portfolio-before-interview proof: actual campaigns she could have run",
+        "A clear weekly roadmap: 'week 1 you learn X, week 6 you run Y, month 7 you have Z'",
+        "Placement records with company names and starting salaries"
+      ]
+    },
+
+    searchArchitecture: {
+      googleSearch: ["digital marketing course in Kolkata for freshers", "digital marketing with internship and placement", "what skills do employers want in a digital marketer", "B.Com graduate career options"],
+      youtubeSearch: ["kolkata digital marketing course review", "how to get a marketing job as a fresher", "digital marketing portfolio for beginners"],
+      aiSearchQueries: ["How do I get a digital marketing job with no experience?", "Which marketing skill is most in demand for freshers in India?", "Is a digital marketing certificate worth it?"],
+      platformPreference: "LinkedIn, Instagram, YouTube, Google, job portals (Naukri/Internshala), WhatsApp groups"
+    },
+
+    buyingBehavior: {
+      trustBuildingJourney: "Deep research: reads every review, checks placement claims, attends trial class, asks past students on LinkedIn.",
+      emotionalHesitation: "If I ask my parents for ₹50k and it ends up theory-only, I lose their trust AND my chance.",
+      researchBehavior: "Compares institutes on portfolio quality, internship support, tools taught (Meta/Google/AI), placement records.",
+      priceExpectation: "Moderate — willing to pay more for portfolio + internship + placement support.",
+      purchaseBlockers: ["Fear of theory-heavy institutes", "Portfolio doubts", "Parent approval", "Comparing with free online courses"],
+      urgencyTriggers: ["Graduation approaching", "Peers getting internships", "Job portal rejections piling up", "Family pressure"]
+    },
+
+    objectionStack: [
+      {
+        visibleObjection: "Is the placement support real or just a promise?",
+        hiddenFear: "Every institute promises placement; I need proof it actually happens.",
+        counterResponse: "Show exact placement records, real names/companies from similar backgrounds, and portfolio-as-leverage proof."
+      },
+      {
+        visibleObjection: "Do I need to be creative or technical to do marketing?",
+        hiddenFear: "I'm not an artist and I'm not a coder — am I even cut out for this?",
+        counterResponse: "Framing modern marketing as data + systems + AI tools, teachable step-by-step — strategy beats 'creativity'."
+      }
+    ],
+
+    trustArchitecture: {
+      buildsTrust: "Portfolio-building curriculum, real campaign projects, internship placement, alumni working in agencies, honest salary transparency",
+      destroysTrust: "Certificate factories, 'lakhs in 30 days' promises, fake followers, no student proof",
+      influencesDecisions: "Past students (LinkedIn), parents (needs a rational ROI case), working marketers, mentor credibility",
+      proofRequired: "Placement records with companies + salaries, portfolio samples, internship stories, demo class"
+    },
+
+    contentConsumptionHabits: {
+      platformBehavior: "LinkedIn for jobs and alumni stalking, Instagram for career reels, YouTube for tutorials, Google reviews before anything.",
+      formatsTrusted: "Before/after career journeys, portfolio walkthroughs, salary talks, 'day in the life of a marketing exec'",
+      activeConsumptionTiming: "Late nights after job-hunting sessions; weekends for research",
+      emotionalEngagement: "Saves content that shows a clear, believable path from fresher to hired."
+    },
+
+    transformationGoal: {
+      beforeState: "A degree-holder with no practical skill, no portfolio, and mounting unemployment anxiety.",
+      afterState: "A campaign-ready marketer with a real portfolio, internship/agency placement, and interview confidence.",
+      emotionalGoal: "To finally have an answer when relatives ask 'so what are you doing now?'"
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // 6. GROWTH MARKETING PROFESSIONAL (DGM stream)
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id: "growth-marketing-professional",
+    label: "Growth Marketing Professional",
+    audienceCategory: "Growth Marketing Professional",
+    domains: ["growth marketing", "performance marketing", "digital marketing", "upskilling", "career growth", "marketing analytics"],
+    program: "DGM",
+
+    characterSnapshot: {
+      name: "Sourav",
+      age: 26,
+      region: "Kolkata, India",
+      identityHeadline: "The working professional stuck in a non-growth role, watching juniors with marketing skills leapfrog him"
+    },
+
+    voiceOfCustomer: {
+      definingQuote: "\"I've been doing the same role for 3 years. People who know performance marketing are getting hired around me.\"",
+      hiddenInsecurity: "Am I becoming replaceable? Is it too late to switch into growth marketing?",
+      commonPhrases: [
+        "My salary has stagnated",
+        "I want to move into growth/performance marketing",
+        "I don't have a portfolio of campaigns to show",
+        "I can't afford to quit and study full-time"
+      ]
+    },
+
+    lifeSituation: {
+      education: "Graduate (commerce/arts/engineering) with 1–3 years in sales, support, data entry, or traditional marketing",
+      income: "Modest salary; dependency (family/EMI) rising",
+      familyPressure: "Growing responsibilities; every rupee spent on upskilling must show a return",
+      financialCondition: "Living paycheck to paycheck; ROI-sensitive about courses",
+      influenceSystem: "LinkedIn, industry newsletters, ex-colleagues who switched, senior marketers",
+      livingEnvironment: "Exhausted after work hours; studies late at night or weekends only"
+    },
+
+    psychologyLayer: {
+      identityBelief: "My experience counts, but I lack the modern (growth/AI/performance) skills that move salaries.",
+      emotionalFrustration: "Younger colleagues with 'growth hacking' skills landing better roles at higher pay.",
+      fearOfFailure: "Spending savings on a course that doesn't translate into a salary jump or a role change.",
+      selfWorthIssues: "Avoiding career talk at gatherings because he's stuck while peers climb.",
+      successVisualization: "A senior growth/performance role with a real salary jump and professional respect."
+    },
+
+    painArchitecture: {
+      hiddenFears: [
+        "What if AI automates my current role and I have no skillet to pivot?",
+        "What if I'm too late and growth marketing is already crowded?",
+        "What if I can't balance a 10-hour job with learning?",
+        "What if the course is beginner-level and wastes my time?"
+      ],
+      liveDailyLifeSituations: [
+        "Seen a 'performance marketing manager' posting and envying the pay scale.",
+        "Keeping an Excel sheet of 'courses to join' that never gets started.",
+        "Feeling a pang when a junior with certification gets promoted.",
+        "Struggling to explain at home why another course deserves the money."
+      ],
+      emotionalTriggers: [
+        "Salary data: what growth marketers earn vs. generic roles",
+        "Case studies of peers 25–30 who pivoted successfully",
+        "Weekend/evening formats that fit a working schedule",
+        "Real campaign ROI stories: 'this skill paid for itself in 3 months'"
+      ]
+    },
+
+    searchArchitecture: {
+      googleSearch: ["performance marketing course for working professionals", "growth marketing certification India", "digital marketing courses for professionals with evening batches", "marketing analyst salary growth"],
+      youtubeSearch: ["how to transition from sales to marketing", "growth marketing career roadmap", "performance marketing explained"],
+      aiSearchQueries: ["Can I move into performance marketing at 26 from a non-marketing role?", "What skills do growth marketers need beyond basics?", "Is an evening digital marketing course worth it for a working professional?"],
+      platformPreference: "LinkedIn, YouTube, industry newsletters, job portals, professional webinars"
+    },
+
+    buyingBehavior: {
+      trustBuildingJourney: "Wants hard data: salary evidence, case studies, ROI timelines, alumni role changes.",
+      emotionalHesitation: "If this doesn't create a promotion or a better role, I've wasted savings AND face.",
+      researchBehavior: "Compares depth (not just basics), tools taught, mentor quality, alumni outcomes, batch timing.",
+      priceExpectation: "Moderate to premium IF ROI is provable (salary data + alumni outcomes).",
+      purchaseBlockers: ["Time constraints", "Fear of beginner-level content", "ROI skepticism", "Family financial pressure"],
+      urgencyTriggers: ["A disappointing appraisal", "Seeing a junior leapfrog", "Growing AI anxiety about his role"]
+    },
+
+    objectionStack: [
+      {
+        visibleObjection: "I don't have time with a full-time job.",
+        hiddenFear: "What if I burn out and fail the course after paying for it?",
+        counterResponse: "Weekend/evening structure, short high-impact modules, and real projects that double as portfolio work."
+      },
+      {
+        visibleObjection: "Will this actually change my salary?",
+        hiddenFear: "I've been burned by certifications that led nowhere.",
+        counterResponse: "Show alumni role/salary progressions and position the course as a role-change vehicle, not a certificate."
+      }
+    ],
+
+    trustArchitecture: {
+      buildsTrust: "Mentors who transitioned themselves, transparent salary/role outcomes, advanced curriculum (analytics, performance, AI tools)",
+      destroysTrust: "Beginner fluff, fake success stories, generic certificates",
+      influencesDecisions: "Peers who switched, LinkedIn network, honest mentor conversations",
+      proofRequired: "Alumni salary growth charts, role-change case studies, project depth"
+    },
+
+    contentConsumptionHabits: {
+      platformBehavior: "LinkedIn daily, YouTube during commute, reads newsletters; skims long blogs.",
+      formatsTrusted: "Salary/ROI breakdowns, career-pivot case studies, tool walkthroughs, industry trend analyses",
+      activeConsumptionTiming: "Morning commute, late nights after work",
+      emotionalEngagement: "Values content that respects his experience while showing a concrete path to growth."
+    },
+
+    transformationGoal: {
+      beforeState: "A hard-working professional stuck in a plateaued role, anxious about AI and salary stagnation.",
+      afterState: "A growth/performance marketer with a salary jump, portfolio, and a career on an upward trajectory.",
+      emotionalGoal: "To finally feel his hard work translating into real career progression."
+    }
   }
 ];
 

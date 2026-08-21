@@ -78,6 +78,11 @@ const emailCampaignSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    // Target course (CBA/DGM/TBM) — which program's persona/offer drove this email
+    course: {
+      type: String,
+      default: "CBA",
+    },
 
     // Autonomous system fields
     // audienceCategory: {

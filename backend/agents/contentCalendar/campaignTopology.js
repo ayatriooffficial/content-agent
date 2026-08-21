@@ -3,21 +3,30 @@
 // Builds the slot map that drives the Content Calendar Agent.
 //
 //   • BLOGS      -> 2 posts per calendar week (independent SEO stream, full 15 days)
-//   • EMAIL      -> 6 messages: 3 stages x 3 days x 2 slots/day (Awareness→Engagement→Conversion)
-//   • WHATSAPP   -> 6 messages: 3 stages x 3 days x 2 slots/day (Awareness→Engagement→Conversion)
+//   • EMAIL      -> 12 messages: 6 CBA + 6 DGM (3 stages x 3 days x 2 slots/day
+//                   per course) — Awareness→Engagement→Conversion
+//   • WHATSAPP   -> 12 messages: 6 CBA + 6 DGM (same 3-stage funnel per course)
 //
 // The messaging streams follow the company's 3-stage funnel:
-//   Stage 1 (Awareness)   -> Day 1, 2 messages
-//   Stage 2 (Engagement)  -> Day 2, 2 messages
-//   Stage 3 (Conversion)  -> Day 3, 2 messages
+//   Stage 1 (Awareness)   -> Day 1, 2 messages per course
+//   Stage 2 (Engagement)  -> Day 2, 2 messages per course
+//   Stage 3 (Conversion)  -> Day 3, 2 messages per course
+//
 // Each slot's content MUST justify its stage name (see stage-justifying
-// objectives below + prompt rules in contentCalendarAgent.js).
+// objectives + prompt rules in contentCalendarAgent.js). Every messaging
+// slot also carries a `course` tag (CBA|DGM) so CBA leads receive the CBA
+// copy, DGM leads the DGM copy (TBM falls back to CBA rows in the sheet).
+// Slot keys are course-unique (email_1 vs email_dgm_1) so the calendar
+// dedupe-by-slotKey and sheet dedupe marker never collide.
+
+const { journeyStagePrompt } = require("../../data/buyerJourneyIntel");
 
 const CALENDAR_LENGTH_DAYS = 15;   // Total span the calendar plans for
 const BLOGS_PER_WEEK = 2;          // Blog cadence
 const MESSAGING_DAYS = 3;          // 3-stage funnel window (3 days)
-const MESSAGES_PER_DAY = 2;        // 2 messages/day per channel
-const TOTAL_MESSAGES = MESSAGING_DAYS * MESSAGES_PER_DAY; // 6
+const MESSAGES_PER_DAY = 2;        // 2 messages/day per channel per course
+const TOTAL_MESSAGES = MESSAGING_DAYS * MESSAGES_PER_DAY; // 6 (per channel per course)
+const COURSES = ["CBA", "DGM"];    // Both courses get their own messaging stream
 
 const STAGES = {
   1: "1_AWARENESS",
@@ -67,6 +76,7 @@ function buildBlogSlots(calendarLengthDays, blogsPerWeek) {
         dayOffset,
         channel: "WEBSITE",
         type: "BLOG",
+        course: "CBA", // blogs are public SEO — tagged CBA by default
         purpose: pickBlogPurpose(slotIndex)
       });
       slotIndex++;
@@ -92,10 +102,21 @@ function pickBlogPurpose(index) {
 
 /**
  * Stage-justifying objectives per channel — the copy generated for each
- * slot MUST match the stage's funnel purpose.
+ * slot MUST match the stage's funnel purpose. Appends the buyer-journey
+ * stage's 7 counterparts so downstream generators stay psychologically
+ * grounded per stage.
  */
+function buildStageObjectives(baseObjectives) {
+  const enriched = {};
+  Object.entries(baseObjectives).forEach(([stageKey, objectives]) => {
+    const journeyBlock = journeyStagePrompt(stageKey);
+    enriched[stageKey] = objectives.map((o) => `${o}\n\nJOURNEY CONTEXT (stage ${stageKey}):\n${journeyBlock}`);
+  });
+  return enriched;
+}
+
 const STAGE_OBJECTIVES = {
-  EMAIL: {
+  EMAIL: buildStageObjectives({
     "1_AWARENESS": [
       "Introduce the career problem/opportunity — pure education, NO enrollment push",
       "Surface the industry reality & why the audience should care (awareness only)",
@@ -111,8 +132,8 @@ const STAGE_OBJECTIVES = {
       "Fees/EMI/scholarship + apply link + soft urgency (no fake scarcity)",
       "Final call to apply or talk to a counselor — conversion focus"
     ]
-  },
-  WHATSAPP: {
+  }),
+  WHATSAPP: buildStageObjectives({
     "1_AWARENESS": [
       "Short punchy hook about the career problem — educate, no hard sell",
       "'Did you know?' observation that builds awareness of the opportunity",
@@ -128,14 +149,16 @@ const STAGE_OBJECTIVES = {
       "Direct 'talk to a counselor' / apply link push (conversion focus)",
       "Final call with clear next step — no fake urgency"
     ]
-  }
+  })
 };
 
 /**
- * Builds a 3-stage messaging stream (EMAIL or WHATSAPP):
+ * Builds a 3-stage messaging stream (EMAIL or WHATSAPP) for ONE course:
  * 6 slots = Stage1(Day1, 2 slots) → Stage2(Day2, 2 slots) → Stage3(Day3, 2 slots).
+ * slotKey gets a `_${course.toLowerCase()}` suffix for every course after CBA
+ * so keys stay globally unique (email_1, email_1_dgm, ...).
  */
-function buildStageStream({ channel, type, keyPrefix, objectives }) {
+function buildStageStream({ channel, type, keyPrefix, objectives, course }) {
   const slots = [];
   let slotIndex = 1;
 
@@ -146,11 +169,13 @@ function buildStageStream({ channel, type, keyPrefix, objectives }) {
 
     for (let slot = 1; slot <= MESSAGES_PER_DAY; slot++) {
       const objectiveIdx = (slot - 1) % stageObjectives.length;
+      const courseSuffix = course === "CBA" ? "" : `_${course.toLowerCase()}`;
       slots.push({
-        slotKey: `${keyPrefix}_${slotIndex}`,
+        slotKey: `${keyPrefix}_${slotIndex}${courseSuffix}`,
         dayOffset,
         channel,
         type,
+        course,
         funnelStage,
         slot,                       // 1 or 2 within the day
         objective: stageObjectives[objectiveIdx],
@@ -169,25 +194,32 @@ function generateCampaignTopology(options = {}) {
 
   const blogSlots = buildBlogSlots(calendarLengthDays, blogsPerWeek);
 
-  const emailSlots = buildStageStream({
-    channel: "EMAIL",
-    type: "EMAIL",
-    keyPrefix: "email",
-    objectives: STAGE_OBJECTIVES.EMAIL
-  });
+  const emailSlots = COURSES.flatMap((course) =>
+    buildStageStream({
+      channel: "EMAIL",
+      type: "EMAIL",
+      keyPrefix: course === "CBA" ? "email" : "email",
+      objectives: STAGE_OBJECTIVES.EMAIL,
+      course
+    })
+  );
 
-  const whatsappSlots = buildStageStream({
-    channel: "WHATSAPP",
-    type: "WHATSAPP",
-    keyPrefix: "wa",
-    objectives: STAGE_OBJECTIVES.WHATSAPP
-  });
+  const whatsappSlots = COURSES.flatMap((course) =>
+    buildStageStream({
+      channel: "WHATSAPP",
+      type: "WHATSAPP",
+      keyPrefix: "wa",
+      objectives: STAGE_OBJECTIVES.WHATSAPP,
+      course
+    })
+  );
 
   return [...blogSlots, ...emailSlots, ...whatsappSlots];
 }
 
-// Default topology: 15-day span, 2 blogs/week, 6 emails + 6 WhatsApp
-// in a 3-stage (Awareness → Engagement → Conversion) 3-day funnel.
+// Default topology: 15-day span, 2 blogs/week, 6 CBA + 6 DGM emails,
+// 6 CBA + 6 DGM WhatsApp, each in a 3-stage (Awareness → Engagement →
+// Conversion) 3-day funnel.
 const CAMPAIGN_TOPOLOGY = generateCampaignTopology();
 
 module.exports = {
@@ -198,5 +230,6 @@ module.exports = {
   MESSAGING_DAYS,
   MESSAGES_PER_DAY,
   TOTAL_MESSAGES,
-  STAGES
+  STAGES,
+  COURSES,
 };

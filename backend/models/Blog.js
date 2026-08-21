@@ -112,6 +112,11 @@ const blogSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    // Target course (CBA/DGM/TBM) — which program's persona/offer drove this content
+    course: {
+      type: String,
+      default: "CBA",
+    },
     opportunityScore: {
       type: Number,
       default: 0,

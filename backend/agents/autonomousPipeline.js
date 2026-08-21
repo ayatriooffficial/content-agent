@@ -48,6 +48,16 @@ const runContentCalendarAgent = require("./contentCalendar/contentCalendarAgent"
 
 // Config
 const { getCompetitorURLs } = require("../config/competitors");
+const { PROGRAM_SPECS, COMPETITOR_GROUPS } = require("../data/buyerJourneyIntel");
+
+// Per-process counter — rotates DGM persona archetypes across pipeline runs.
+let dgmRunCounter = 0;
+
+/** Formats a competitor group as prompt context for the competitor agent. */
+function competitorGroupContext(groupKey) {
+  const group = COMPETITOR_GROUPS[groupKey] || [];
+  return group.map((c) => `${c.name} (${c.url}) — ${c.category}`).join("\n");
+}
 
 /**
  * Run the complete autonomous pipeline.
@@ -59,6 +69,8 @@ async function runAutonomousPipeline(options = {}) {
   const runType = options.runType || "autonomous";
   const sseWriter = options.sseWriter || null;
   const onStepUpdate = options.onStepUpdate || (() => { });
+  // Rotates DGM persona archetypes across pipeline runs (0,1,2 → repeat)
+  dgmRunCounter++;
 
   const sendStep = (step, status, data) => {
     const logEntry = { step, status, message: data?.message || step, timestamp: new Date() };
@@ -125,9 +137,9 @@ async function runAutonomousPipeline(options = {}) {
 
     // Build business context from autonomous selection
     const businessContext = {
-      companyName: "AccountIQ",
-      productDescription: "Autonomous AI-powered accounting education content",
-      productFeatures: ["Practical accounting training", "GST filing", "Tally ERP", "Interview preparation"],
+      companyName: "Charters Union of Business",
+      productDescription: "Autonomous AI-powered accounting, digital marketing & business education content (CBA/DGM/TBM programs)",
+      productFeatures: ["Practical accounting training", "GST filing", "Tally ERP", "Digital growth & marketing", "Interview preparation", "Placement support"],
       competitors: getCompetitorURLs(),
       audienceCategory: selectedCategory,
       educationBackground: selectedCategory === "Working Professional" ? "Commerce Graduate" : "Commerce",
@@ -137,7 +149,19 @@ async function runAutonomousPipeline(options = {}) {
         selectedCategory === "Working Professional" ? "Career stagnation" : "No practical accounting exposure",
       businessGoal: "Generate SEO traffic and student enrollment",
       industry: "Accounting & Finance Education",
-      targetLocation: selectedLocation
+      targetLocation: selectedLocation,
+      // CBA program spec for the primary accounting persona/research stream
+      programSpec: PROGRAM_SPECS.CBA
+    };
+
+    // DGM business context (used for the DGM persona/research/competitor runs)
+    const dgmBusinessContext = {
+      ...businessContext,
+      program: "DGM",
+      programSpec: PROGRAM_SPECS.DGM,
+      industry: "Digital Marketing Education",
+      biggestProblem: "No practical marketing experience and no portfolio",
+      primaryGoal: "Get a digital marketing job / agency role"
     };
 
     // ══════════════════════════════════════════════════════════════
@@ -158,10 +182,13 @@ async function runAutonomousPipeline(options = {}) {
       message: `Loading ${selectedCategory} persona template...`,
       methodology: "Intelligent Template Selection"
     });
-    const selectedTemplates = personaTemplateLoader(domainResult);
+    const selectedTemplates = personaTemplateLoader(domainResult, { course: "CBA" });
+    // DGM persona template (rotates across the 3 DGM archetypes)
+    const dgmTemplates = personaTemplateLoader(domainResult, { course: "DGM", rotationSeed: dgmRunCounter });
     sendStep("personaLoader", "done", {
       count: selectedTemplates.length,
       labels: selectedTemplates.map(t => t.label),
+      dgmLabel: dgmTemplates[0]?.label || "",
       matchedCategory: selectedCategory
     });
     await delay(500);
@@ -179,7 +206,8 @@ async function runAutonomousPipeline(options = {}) {
       selectedTemplates,
       businessContext,
       { city: selectedLocation },
-      opportunityResult.broadMarketResearch || ""
+      opportunityResult.broadMarketResearch || "",
+      businessContext.programSpec
     );
 
     await Persona.create({
@@ -189,7 +217,28 @@ async function runAutonomousPipeline(options = {}) {
       profile: personaResult,
     });
 
+    // DGM persona run — same enrichment flow, DGM template + DGM program spec
+    let personaResultDGM = null;
+    try {
+      personaResultDGM = await personaAgent(
+        dgmTemplates,
+        dgmBusinessContext,
+        { city: selectedLocation },
+        opportunityResult.broadMarketResearch || "",
+        dgmBusinessContext.programSpec
+      );
+      await Persona.create({
+        domain: "digital-marketing",
+        companyName: businessContext.companyName,
+        selectedTemplates: dgmTemplates.map(t => t.label),
+        profile: personaResultDGM,
+      });
+    } catch (err) {
+      console.warn("⚠️ DGM persona run failed (continuing with CBA-only):", err.message);
+    }
+
     pipelineRun.agentOutputs.personaIntelligence = personaResult;
+    if (personaResultDGM) pipelineRun.agentOutputs.personaIntelligenceDGM = personaResultDGM;
     sendStep("persona", "done", personaResult);
     await delay(1000);
 
@@ -204,6 +253,16 @@ async function runAutonomousPipeline(options = {}) {
 
     const researchResult = await researchAgent(personaResult, businessContext, { city: selectedLocation });
 
+    // DGM research run (persona + programSpec + live search all course-specific)
+    let researchResultDGM = null;
+    if (personaResultDGM) {
+      try {
+        researchResultDGM = await researchAgent(personaResultDGM, dgmBusinessContext, { city: selectedLocation });
+      } catch (err) {
+        console.warn("⚠️ DGM research run failed (continuing with CBA-only):", err.message);
+      }
+    }
+
     await ResearchHistory.create({
       domain: domainResult.domain,
       companyName: businessContext.companyName,
@@ -214,6 +273,7 @@ async function runAutonomousPipeline(options = {}) {
     });
 
     pipelineRun.agentOutputs.researchIntelligence = researchResult;
+    if (researchResultDGM) pipelineRun.agentOutputs.researchIntelligenceDGM = researchResultDGM;
     sendStep("research", "done", researchResult);
     await delay(1000);
 
@@ -232,6 +292,21 @@ async function runAutonomousPipeline(options = {}) {
       researchResult
     );
 
+    // DGM competitor run — digital-marketing competitor set + DGM persona/research
+    let competitorResultDGM = null;
+    if (personaResultDGM) {
+      try {
+        competitorResultDGM = await competitorAgent(
+          COMPETITOR_GROUPS.digitalMarketing.map((c) => c.url),
+          personaResultDGM,
+          researchResultDGM || researchResult,
+          { competitorContext: competitorGroupContext("digitalMarketing") }
+        );
+      } catch (err) {
+        console.warn("⚠️ DGM competitor run failed (continuing with CBA-only):", err.message);
+      }
+    }
+
     await CompetitorAnalysis.create({
       domain: domainResult.domain,
       companyName: businessContext.companyName,
@@ -243,6 +318,7 @@ async function runAutonomousPipeline(options = {}) {
     });
 
     pipelineRun.agentOutputs.competitorIntelligence = competitorResult;
+    if (competitorResultDGM) pipelineRun.agentOutputs.competitorIntelligenceDGM = competitorResultDGM;
     sendStep("competitor", "done", competitorResult);
     await delay(1000);
 
@@ -288,7 +364,10 @@ async function runAutonomousPipeline(options = {}) {
       researchResult,
       competitorResult,
       memoryResult,
-      blueprint // ✅ orchestrator's synthesized strategy now feeds the calendar
+      blueprint, // ✅ orchestrator's synthesized strategy now feeds the calendar
+      personaResultDGM,
+      researchResultDGM,
+      competitorResultDGM
     }, new Date().toISOString());
 
     // Save ContentCalendar to MongoDB

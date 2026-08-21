@@ -21,11 +21,18 @@ const WhatsAppCampaign = require("../../models/WhatsAppCampaign");
 const blogGeneratorAgent = require("../blogGeneratorAgent");
 const whatsappGeneratorAgent = require("../whatsappGeneratorAgent");
 const validationAgent = require("../validationAgent");
+const { PROGRAM_SPECS } = require("../../data/buyerJourneyIntel");
 
 /**
  * Pulls the intelligence produced earlier in the pipeline (persona,
  * research, competitor, orchestrator blueprint) so slot-level generation
  * doesn't have to re-run those agents.
+ *
+ * Pipeline runs now carry BOTH the primary (CBA/accounting) sets and the
+ * DGM sets when the run generated both courses:
+ *   agentOutputs.personaIntelligence (+ .personaIntelligenceDGM)
+ *   agentOutputs.researchIntelligence (+ .researchIntelligenceDGM)
+ *   agentOutputs.competitorIntelligence (+ .competitorIntelligenceDGM)
  */
 async function loadPipelineContext(calendar) {
   const run = calendar.pipelineRunId
@@ -39,18 +46,33 @@ async function loadPipelineContext(calendar) {
   }
 
   const outputs = run.agentOutputs || {};
-  return {
+  const base = {
     run,
     persona: outputs.personaIntelligence || {},
     research: outputs.researchIntelligence || {},
     competitor: outputs.competitorIntelligence || {},
     blueprint: outputs.orchestratorBlueprint || {},
   };
+  // DGM variants (fall back to the primary set so single-course runs work)
+  base.personaDGM = outputs.personaIntelligenceDGM || base.persona;
+  base.researchDGM = outputs.researchIntelligenceDGM || base.research;
+  base.competitorDGM = outputs.competitorIntelligenceDGM || base.competitor;
+  return base;
 }
 
 /** Merge the base orchestrator blueprint with slot-specific overrides. */
 function buildSlotBlueprint(baseBlueprint, overrides = {}) {
   return { ...baseBlueprint, ...overrides };
+}
+
+/** Picks the persona/research/competitor set for a slot's course. */
+function pickCourseIntel(ctx, course) {
+  const isDGM = course === "DGM";
+  return {
+    persona: isDGM ? ctx.personaDGM : ctx.persona,
+    research: isDGM ? ctx.researchDGM : ctx.research,
+    competitor: isDGM ? ctx.competitorDGM : ctx.competitor,
+  };
 }
 
 /**
@@ -59,15 +81,19 @@ function buildSlotBlueprint(baseBlueprint, overrides = {}) {
  */
 async function generateBlogForSlot(calendar, slot) {
   console.log(`\n📝 [Slot Content Agent] Generating BLOG for slot ${slot.slotKey} (stage: ${slot.funnelStage || "SEO"})...`);
-  const { persona, research, competitor, blueprint } = await loadPipelineContext(calendar);
+  const ctx = await loadPipelineContext(calendar);
+  const course = slot.course || "CBA";
+  const { persona, research, competitor } = pickCourseIntel(ctx, course);
 
-  const slotBlueprint = buildSlotBlueprint(blueprint, {
-    blogTitle: slot.title || blueprint.blogTitle,
+  const slotBlueprint = buildSlotBlueprint(ctx.blueprint, {
+    blogTitle: slot.title || ctx.blueprint.blogTitle,
+    course,
+    programSpec: PROGRAM_SPECS[course] || PROGRAM_SPECS.CBA,
     targetKeywords: [slot.primaryKeyword, ...(slot.gapKeywords || [])].filter(Boolean).length
       ? [slot.primaryKeyword, ...(slot.gapKeywords || [])].filter(Boolean)
-      : blueprint.targetKeywords,
-    contentDirection: slot.coreAngle || blueprint.contentDirection,
-    contentAngle: slot.coreAngle || blueprint.contentAngle,
+      : ctx.blueprint.targetKeywords,
+    contentDirection: slot.coreAngle || ctx.blueprint.contentDirection,
+    contentAngle: slot.coreAngle || ctx.blueprint.contentAngle,
   });
 
   const blogResult = await blogGeneratorAgent(slotBlueprint, persona, research, competitor);
@@ -97,13 +123,14 @@ async function generateBlogForSlot(calendar, slot) {
     pipelineRunId: calendar.pipelineRunId,
     calendarId: calendar.calendarId,
     slotKey: slot.slotKey,
+    course,
     seoKeywords: slotBlueprint.targetKeywords || [],
-    emotionalHook: blueprint.emotionalHook || "",
+    emotionalHook: ctx.blueprint.emotionalHook || "",
     createdAt: new Date(),
   });
 
   await blog.save();
-  console.log(`✅ [Slot Content Agent] Blog generated for slot ${slot.slotKey}: "${blog.title}"`);
+  console.log(`✅ [Slot Content Agent] Blog generated for slot ${slot.slotKey} (${course}): "${blog.title}"`);
   return blog;
 }
 
@@ -121,16 +148,20 @@ function normalizeRootUrl(rawUrl) {
 
 async function generateEmailForSlot(calendar, slot) {
   console.log(`\n📧 [Slot Content Agent] Generating EMAIL for slot ${slot.slotKey} (stage: ${slot.funnelStage || "?"})...`);
-  const { persona, research, competitor, blueprint } = await loadPipelineContext(calendar);
+  const ctx = await loadPipelineContext(calendar);
+  const course = slot.course || "CBA";
+  const { persona, research, competitor } = pickCourseIntel(ctx, course);
 
-  const slotBlueprint = buildSlotBlueprint(blueprint, {
-    targetKeywords: (slot.gapKeywords || []).length ? slot.gapKeywords : blueprint.targetKeywords,
-    contentDirection: slot.coreAngle || blueprint.contentDirection,
+  const slotBlueprint = buildSlotBlueprint(ctx.blueprint, {
+    course,
+    programSpec: PROGRAM_SPECS[course] || PROGRAM_SPECS.CBA,
+    targetKeywords: (slot.gapKeywords || []).length ? slot.gapKeywords : ctx.blueprint.targetKeywords,
+    contentDirection: slot.coreAngle || ctx.blueprint.contentDirection,
   });
 
   const ROOT = normalizeRootUrl(process.env.ROOT_EMAIL_SERVER || process.env.ROOT_SERVER_URL || "http://127.0.0.1:6001");
   const url = `${ROOT}/api/emails/generate`;
-  const pipelineContext = { persona, research, competitor, blueprint };
+  const pipelineContext = { persona, research, competitor, blueprint: ctx.blueprint };
   const payload = {
     kind: "intro",
     name: calendar.campaignName || "Student",
@@ -146,6 +177,8 @@ async function generateEmailForSlot(calendar, slot) {
     slotKey: slot.slotKey || "",
     context: {
       ...pipelineContext,
+      programSpec: slotBlueprint.programSpec || {},
+      course,
       slot: {
         ...slot,
         title: slot.title || "",
@@ -159,6 +192,7 @@ async function generateEmailForSlot(calendar, slot) {
         funnelStage: slot.funnelStage || "",   // 1_AWARENESS / 2_ENGAGEMENT / 3_CONVERSION
         objective: slot.objective || "",       // stage-justifying objective from topology
         slotKey: slot.slotKey || "",
+        course,
       },
       calendar: {
         campaignName: calendar.campaignName || "",
@@ -218,12 +252,13 @@ async function generateEmailForSlot(calendar, slot) {
     status: "pending",
     calendarId: calendar.calendarId,
     slotKey: slot.slotKey,
+    course,
     pipelineRunId: calendar.pipelineRunId,
     createdAt: new Date(),
   });
 
   await emailCampaign.save();
-  console.log(`✅ [Slot Content Agent] Email generated for slot ${slot.slotKey}: "${emailCampaign.subject}"`);
+  console.log(`✅ [Slot Content Agent] Email generated for slot ${slot.slotKey} (${course}): "${emailCampaign.subject}"`);
   return emailCampaign;
 }
 
@@ -235,11 +270,15 @@ async function generateEmailForSlot(calendar, slot) {
  */
 async function generateWhatsAppForSlot(calendar, slot) {
   console.log(`\n💬 [Slot Content Agent] Generating WHATSAPP for slot ${slot.slotKey} (stage: ${slot.funnelStage || "?"})...`);
-  const { persona, research, competitor, blueprint } = await loadPipelineContext(calendar);
+  const ctx = await loadPipelineContext(calendar);
+  const course = slot.course || "CBA";
+  const { persona, research, competitor } = pickCourseIntel(ctx, course);
 
-  const slotBlueprint = buildSlotBlueprint(blueprint, {
-    targetKeywords: (slot.gapKeywords || []).length ? slot.gapKeywords : blueprint.targetKeywords,
-    contentDirection: slot.whatsappHook || blueprint.contentDirection,
+  const slotBlueprint = buildSlotBlueprint(ctx.blueprint, {
+    course,
+    programSpec: PROGRAM_SPECS[course] || PROGRAM_SPECS.CBA,
+    targetKeywords: (slot.gapKeywords || []).length ? slot.gapKeywords : ctx.blueprint.targetKeywords,
+    contentDirection: slot.whatsappHook || ctx.blueprint.contentDirection,
   });
 
   // whatsappGeneratorAgent's positional `blogResult` arg is only used for
@@ -251,6 +290,8 @@ async function generateWhatsAppForSlot(calendar, slot) {
     ctaUrlPath: "/blogs",
     campaignType: "blog_promotion",
     suggestedHook: slot.whatsappHook,
+    course,
+    programSpec: slotBlueprint.programSpec || {},
     ctaGoal: slot.ctaGoal,
     coreAngle: slot.coreAngle || slotBlueprint.contentAngle || "",
     funnelStage: slot.funnelStage || "",        // 1_AWARENESS / 2_ENGAGEMENT / 3_CONVERSION
@@ -279,11 +320,12 @@ async function generateWhatsAppForSlot(calendar, slot) {
     pipelineRunId: calendar.pipelineRunId,
     calendarId: calendar.calendarId,
     slotKey: slot.slotKey,
+    course,
     createdAt: new Date(),
   });
 
   await whatsappCampaign.save();
-  console.log(`✅ [Slot Content Agent] WhatsApp message generated for slot ${slot.slotKey}`);
+  console.log(`✅ [Slot Content Agent] WhatsApp message generated for slot ${slot.slotKey} (${course})`);
   return whatsappCampaign;
 }
 

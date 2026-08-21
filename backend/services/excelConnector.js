@@ -101,6 +101,8 @@ function buildWhatsAppContent(wa) {
 /**
  * Writes an approved WhatsApp campaign to the "Messages" tab.
  * Dedupes by calendarId+slotKey so the same campaign isn't written twice.
+ * Course column is now filled (CBA/DGM) — TBM leads receive the CBA rows
+ * (mirror rows), per the business decision.
  */
 async function writeWhatsAppCampaign(wa, calendar) {
   try {
@@ -125,19 +127,25 @@ async function writeWhatsAppCampaign(wa, calendar) {
     const time = formatTime(slotInfo?.scheduledTimestamp, slot);
 
     const content = buildWhatsAppContent(wa);
+    const course = slotInfo?.course || wa.course || "CBA";
 
-    await sheet.addRow([
-      slotInfo?.course || "ALL",
-      stage,
-      String(day),
-      String(slot),
-      time,
-      "", // Score From
-      "", // Score To
-      content,
-      `${wa.calendarId}::${wa.slotKey}` // hidden dedupe marker in col I
-    ]);
-    console.log(`   ✅ WhatsApp campaign ${wa.slotKey} → Messages tab`);
+    // Primary course row + TBM mirror row (TBM leads receive CBA content)
+    const coursesToWrite = course === "CBA" ? ["CBA", "TBM"] : [course];
+
+    for (const targetCourse of coursesToWrite) {
+      await sheet.addRow([
+        targetCourse,
+        stage,
+        String(day),
+        String(slot),
+        time,
+        "", // Score From
+        "", // Score To
+        content,
+        `${wa.calendarId}::${wa.slotKey}::${targetCourse}` // hidden dedupe marker in col I
+      ]);
+      console.log(`   ✅ WhatsApp campaign ${wa.slotKey} → Messages tab (${targetCourse})`);
+    }
     return { written: true };
   } catch (err) {
     console.error(`   ❌ Excel write failed (WhatsApp ${wa.slotKey}):`, err.message);
@@ -147,6 +155,8 @@ async function writeWhatsAppCampaign(wa, calendar) {
 
 /**
  * Writes an approved Email campaign to the "Email Messages" tab.
+ * Course column is now filled (CBA/DGM) — TBM leads receive the CBA rows
+ * (mirror rows), per the business decision.
  */
 async function writeEmailCampaign(email, calendar) {
   try {
@@ -168,18 +178,24 @@ async function writeEmailCampaign(email, calendar) {
     const time = formatTime(slotInfo?.scheduledTimestamp, slot);
 
     const content = buildEmailContent(email);
+    const course = slotInfo?.course || email.course || "CBA";
 
-    await sheet.addRow([
-      slotInfo?.course || "ALL",
-      stage,
-      String(day),
-      String(slot),
-      time,
-      email.subject || "",
-      content,
-      `${email.calendarId}::${email.slotKey}` // hidden dedupe marker in col H
-    ]);
-    console.log(`   ✅ Email campaign ${email.slotKey} → Email Messages tab`);
+    // Primary course row + TBM mirror row (TBM leads receive CBA content)
+    const coursesToWrite = course === "CBA" ? ["CBA", "TBM"] : [course];
+
+    for (const targetCourse of coursesToWrite) {
+      await sheet.addRow([
+        targetCourse,
+        stage,
+        String(day),
+        String(slot),
+        time,
+        email.subject || "",
+        content,
+        `${email.calendarId}::${email.slotKey}::${targetCourse}` // hidden dedupe marker in col H
+      ]);
+      console.log(`   ✅ Email campaign ${email.slotKey} → Email Messages tab (${targetCourse})`);
+    }
     return { written: true };
   } catch (err) {
     console.error(`   ❌ Excel write failed (Email ${email.slotKey}):`, err.message);

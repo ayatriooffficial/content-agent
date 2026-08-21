@@ -7,6 +7,11 @@ const blogSlotSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    // Target course (CBA/DGM) — which program's persona/offer this slot serves
+    course: {
+      type: String,
+      default: "CBA",
+    },
     scheduledDay: {
       type: Number,
       required: true,
@@ -63,6 +68,11 @@ const emailSlotSchema = new mongoose.Schema(
     slotKey: {
       type: String,
       required: true,
+    },
+    // Target course (CBA/DGM) — which program's persona/offer this slot serves
+    course: {
+      type: String,
+      default: "CBA",
     },
     scheduledDay: {
       type: Number,
@@ -125,6 +135,11 @@ const whatsappSlotSchema = new mongoose.Schema(
     slotKey: {
       type: String,
       required: true,
+    },
+    // Target course (CBA/DGM) — which program's persona/offer this slot serves
+    course: {
+      type: String,
+      default: "CBA",
     },
     scheduledDay: {
       type: Number,
@@ -245,6 +260,7 @@ const contentCalendarSchema = new mongoose.Schema(
             {
               slotKey: String,
               channel: String,
+              course: { type: String, default: "CBA" },
               scheduledTimestamp: Date,
               time: String, // "HH:MM"
               label: String,

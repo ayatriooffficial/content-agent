@@ -20,9 +20,10 @@
  *   channel so downstream systems (or a human editor) can see the throughline.
  */
 
-const { CAMPAIGN_TOPOLOGY } = require("./campaignTopology");
+const { CAMPAIGN_TOPOLOGY, COURSES } = require("./campaignTopology");
 const { generateJSON } = require("../clients/generateJSON");
 const safeParseJSON = require("../jsonParser/jsonParser");
+const { buyerJourneyPromptBlock, programContextPrompt } = require("../../data/buyerJourneyIntel");
 
 // Distinct "voice" each option in a 3-option set must take. Used both to steer
 // the LLM and to regenerate a fallback option when two options collide.
@@ -401,6 +402,14 @@ async function runContentCalendarAgent(marketResearchData = {}, startDateISO = n
   const blueprint = normalizedContext.blueprint || {};
   const fallbackMarketContext = normalizedContext.marketResearchData || normalizedContext;
 
+  // Per-course intelligence: CBA uses the run's primary accounting persona
+  // + research; DGM uses the DGM persona + research + competitor runs, when
+  // present (falls back to the primary set so nothing breaks).
+  const personaResultDGM = normalizedContext.personaResultDGM || personaResult;
+  const researchResultDGM = normalizedContext.researchResultDGM || researchResult;
+  const competitorResultDGM = normalizedContext.competitorResultDGM || competitorResult;
+  const journeyBlock = buyerJourneyPromptBlock();
+
   // 2. Fetch the website's LIVE data (courses, programs, faculty, testimonials)
   //    so all generated content revolves around the actual Charters Union offers.
   const { getWebsiteContext } = require("../../services/websiteContext");
@@ -431,7 +440,15 @@ STRICT OPERATIONAL RULES:
    - Do not repeat the same core angle across days in the same channel.
    - Later days should reference, build on, escalate, or answer an objection raised by an earlier day in that channel (e.g. Day 1 introduces a problem, a later day shows proof/solution, a later still day adds urgency or social proof).
    - Stage 1 (Awareness) items should set up themes that Stage 2 (Engagement) items in the same channel then deepen or convert, and Stage 3 (Conversion) items must close with a clear, honest call to action.
-   You will be given a day-by-day outline of every slot in the campaign below — use it to plan this progression before writing.`;
+   You will be given a day-by-day outline of every slot in the campaign below — use it to plan this progression before writing.
+8. COURSE SEGREGATION (STRICT): Email/WhatsApp slots are generated per course (CBA vs DGM). CBA copy must be about accounting/job-readiness psychology; DGM copy about digital-marketing/growth psychology. Never mix the two courses' topics, objections, or offers inside a single slot. Each slot's block states its COURSE — write for exactly that course.
+9. BUYER JOURNEY GROUNDING: Use the BUYER JOURNEY INTELLIGENCE block — stage counterparts (user action, emotional state, pain points, opportunity, learning objective), messaging pillars, offer hooks, shared objections, and trust factors — to make every title/subject/hook psychologically specific instead of generic. Ground course facts in the LIVE WEBSITE DATA only.`;
+
+  const buyerJourneyBlock = journeyBlock || buyerJourneyPromptBlock();
+  const systemPromptWithJourney = `${systemPrompt}
+
+=== BUYER JOURNEY INTELLIGENCE (use as the psychological brief for every slot) ===
+${buyerJourneyBlock}`;
 
   const narrativeOutline = buildNarrativeOutline(CAMPAIGN_TOPOLOGY);
   const CONTEXT_LIMIT = 600; // per-context truncation — keeps the request under Groq's 8k token limit
@@ -549,26 +566,55 @@ ${narrativeOutline}
 
       for (let ci = 0; ci < channelTopo.length; ci += SLOTS_PER_CALL) {
         const subTopo = channelTopo.slice(ci, ci + SLOTS_PER_CALL);
+        const chunkCourse = subTopo[0]?.course || "CBA";
+        const chunkPersona = chunkCourse === "DGM" ? personaResultDGM : personaResult;
+        const chunkResearch = chunkCourse === "DGM" ? researchResultDGM : researchResult;
+        const chunkCompetitor = chunkCourse === "DGM" ? competitorResultDGM : competitorResult;
+
         const slimPrompt = `You are a Chief Content Officer for Charters Union of Business (CBA/DGM/TBM programs).
 ${websiteContextText}
+
+=== COURSE FOR THIS CHUNK: ${chunkCourse} (write ONLY for this course) ===
+${programContextPrompt(chunkCourse)}
+
+=== PERSONA SIGNALS (${chunkCourse}) ===
+Reader: ${chunkPersona.buyerPersona || ""}
+Character: ${safeStringify(chunkPersona.characterSnapshot, 500)}
+Hidden Fears: ${safeStringify((chunkPersona.hiddenFears || []).slice(0, 4), 400)}
+Fear of Inaction: ${safeStringify((chunkPersona.fearOfInaction || []).slice(0, 4), 300)}
+Emotional Triggers: ${safeStringify((chunkPersona.emotionalTriggers || []).slice(0, 4), 300)}
+Objections: ${safeStringify(chunkPersona.objectionsBeforePurchase?.exactObjections || (chunkPersona.objectionsBeforePurchase || []), 400)}
+Trust Factors: ${safeStringify((chunkPersona.trustFactorsNeeded || []).slice(0, 5), 300)}
+Messaging That Resonates: ${safeStringify((chunkPersona.messagingThatResonates || []).slice(0, 4), 300)}
+Transformation: "${chunkPersona.transformationGoal?.beforeState || ""}" → "${chunkPersona.transformationGoal?.afterState || ""}"
+
+=== RESEARCH SIGNALS (${chunkCourse}) ===
+Keywords: ${safeStringify((chunkResearch.keywords || []).slice(0, 8), 400)}
+AI search queries: ${safeStringify((chunkResearch.aiSearchQueries || []).slice(0, 6), 400)}
+Trends: ${safeStringify((chunkResearch.trendInsights || []).slice(0, 6), 400)}
+Their own words: ${safeStringify((chunkResearch.redditVoicePhrases || []).slice(0, 4), 400)}
+
+=== COMPETITOR GAPS (${chunkCourse}) ===
+${safeStringify({ emotionalGaps: chunkCompetitor.emotionalGaps, blindSpots: chunkCompetitor.competitorBlindSpots, seoGaps: (chunkCompetitor.seoGaps || []).slice(0, 5) }, 400)}
 
 === 15-DAY NARRATIVE FLOW ===
 ${narrativeOutline}
 
-=== GENERATE ONLY THE "${field.toUpperCase()}" CHANNEL (part ${Math.floor(ci / SLOTS_PER_CALL) + 1}) ===
+=== GENERATE ONLY THE "${field.toUpperCase()}" CHANNEL for course ${chunkCourse} (part ${Math.floor(ci / SLOTS_PER_CALL) + 1}) ===
 Use EXACTLY these slotKeys (one entry per slotKey, each with 3 distinct options A/B/C):
-${JSON.stringify(subTopo.map((s) => ({ slotKey: s.slotKey, dayOffset: s.dayOffset, funnelStage: s.funnelStage, slot: s.slot })), null, 2)}
+${JSON.stringify(subTopo.map((s) => ({ slotKey: s.slotKey, dayOffset: s.dayOffset, funnelStage: s.funnelStage, slot: s.slot, course: s.course })), null, 2)}
 
 STRICT UNIQUENESS RULES:
 - EVERY slotKey MUST have a DIFFERENT title/subject/hook from every other slotKey in this channel. NO repetition across slots.
 - The subject/hook must MATCH the slot's funnelStage: 1_AWARENESS = educational/problem-intro, 2_ENGAGEMENT = proof/outcomes/ROI, 3_CONVERSION = urgency/CTA/deadline.
 - The 3 options within each slot (A/B/C) must also be genuinely different from each other.
 - Ground content in the LIVE WEBSITE DATA (Charters Union CBA/DGM/TBM programs, fees, placements, faculty).
+- Write the copy for the ${chunkCourse} course psychology ONLY — never mix accounting (CBA) and marketing (DGM) topics.
 
 Output ONLY this JSON shape (no other keys):
 ${cfg.schema}`;
 
-        const rawChannel = await generateJSON(systemPrompt, slimPrompt, {
+        const rawChannel = await generateJSON(systemPromptWithJourney, slimPrompt, {
           model: "gemini-3.5-flash-lite",  // Primary: native JSON mode, strict option diversity
           groqModel: "openai/gpt-oss-120b", // Fallback: reliable structured JSON
           temperature: 0.6,
@@ -718,6 +764,7 @@ function weaveAdminApprovalPayload(llmStrategy, startDateISO) {
         scheduledDay: topo.dayOffset,
         scheduledTimestamp: pubDate.toISOString(),
         channel: "WEBSITE",
+        course: topo.course || "CBA",
         title: selected.title || blog.title,
         primaryKeyword: selected.primaryKeyword || blog.primaryKeyword || "",
         gapKeywords: selected.gapKeywords || blog.gapKeywords || [],
@@ -750,6 +797,7 @@ function weaveAdminApprovalPayload(llmStrategy, startDateISO) {
         scheduledDay: topo.dayOffset,
         scheduledTimestamp: sendDate.toISOString(),
         channel: "EMAIL",
+        course: topo.course || "CBA",
         funnelStage: topo.funnelStage,
         slot: topo.slot || 1,
         subjectLine: selected.subjectLine || email.subjectLine,
@@ -783,6 +831,7 @@ function weaveAdminApprovalPayload(llmStrategy, startDateISO) {
         scheduledDay: topo.dayOffset,
         scheduledTimestamp: sendDate.toISOString(),
         channel: "WHATSAPP",
+        course: topo.course || "CBA",
         funnelStage: topo.funnelStage,
         slot: topo.slot || 1,
         whatsappHook: selected.whatsappHook || wa.whatsappHook,
@@ -808,6 +857,7 @@ function weaveAdminApprovalPayload(llmStrategy, startDateISO) {
       totalBlogs: websiteBlogs.length,
       totalEmails: emailMessages.length,
       totalWhatsAppMessages: whatsappMessages.length,
+      courses: COURSES,
       activeFunnelStages: ["1_AWARENESS", "2_ENGAGEMENT", "3_CONVERSION"]
     },
     schedule: {
@@ -864,6 +914,7 @@ function buildCalendarView({ websiteBlogs, emailMessages, whatsappMessages }) {
     ...websiteBlogs.map(b => ({
       slotKey: b.slotKey,
       channel: b.channel,
+      course: b.course || "CBA",
       scheduledTimestamp: b.scheduledTimestamp,
       label: b.title,
       status: b.status,
@@ -875,6 +926,7 @@ function buildCalendarView({ websiteBlogs, emailMessages, whatsappMessages }) {
     ...emailMessages.map(e => ({
       slotKey: e.slotKey,
       channel: e.channel,
+      course: e.course || "CBA",
       scheduledTimestamp: e.scheduledTimestamp,
       label: e.subjectLine,
       status: e.status,
@@ -886,6 +938,7 @@ function buildCalendarView({ websiteBlogs, emailMessages, whatsappMessages }) {
     ...whatsappMessages.map(w => ({
       slotKey: w.slotKey,
       channel: w.channel,
+      course: w.course || "CBA",
       scheduledTimestamp: w.scheduledTimestamp,
       label: w.whatsappHook,
       status: w.status,

@@ -89,6 +89,11 @@ const whatsappCampaignSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    // Target course (CBA/DGM/TBM) — which program's persona/offer drove this message
+    course: {
+      type: String,
+      default: "CBA",
+    },
 
     // Autonomous system fields
     audienceCategory: {

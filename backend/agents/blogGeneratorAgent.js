@@ -8,7 +8,14 @@ const safeParseJSON = require("./jsonParser/jsonParser");
  * emotional hooks, trust-building, and transformation storytelling.
  */
 async function blogGeneratorAgent(blueprint, persona, research, competitor) {
-  const prompt = `You are a world-class content strategist for ACCOUNTING & FINANCE education in India. Write a production-quality blog that deeply connects with the reader's psychology.
+  const course = blueprint.course || "CBA";
+  const programSpec = blueprint.programSpec || {};
+  const prompt = `You are a world-class content strategist for education in India (${course}: ${programSpec.label || programSpec.code || "career-focused program"}). Write a production-quality blog that deeply connects with the reader's psychology.
+
+=== PROGRAM CONTEXT (${course}) ===
+Course promise: ${programSpec.corePromise || ""}
+Course outcomes: ${(programSpec.keyOutcomes || []).join(", ")}
+Course objections to address: ${(programSpec.commonObjections || []).slice(0, 6).join(" | ")}
 
 === STRATEGIC BLUEPRINT ===
 TITLE: ${blueprint.blogTitle}
@@ -23,14 +30,23 @@ WORD COUNT: ${blueprint.wordCount || 1000}
 
 === AUDIENCE PSYCHOLOGY ===
 Reader: ${persona.buyerPersona || "Accounting student"}
+Character Snapshot: ${persona.characterSnapshot || ""}
 Identity Belief: ${persona.identityBelief || ""}
 Hidden Fears: ${Array.isArray(persona.hiddenFears) ? persona.hiddenFears.join("; ") : (persona.hiddenFears || "")}
+Fear of Inaction (what happens if they do nothing): ${Array.isArray(persona.fearOfInaction) ? persona.fearOfInaction.join("; ") : (persona.fearOfInaction || "")}
 Hidden Pains: ${Array.isArray(persona.painPoints) ? persona.painPoints.join("; ") : ""}
 Live Situations: ${Array.isArray(persona.liveSituations) ? persona.liveSituations.slice(0, 2).join("; ") : ""}
 Emotional Triggers: ${Array.isArray(persona.emotionalTriggers) ? persona.emotionalTriggers.join(", ") : (persona.emotionalTriggers || "")}
+Their Exact Objections: ${Array.isArray(persona.objectionsBeforePurchase?.exactObjections) ? persona.objectionsBeforePurchase.exactObjections.join("; ") : (Array.isArray(persona.purchaseBarriers) ? persona.purchaseBarriers.join("; ") : "")}
+Trust Factors They Need: ${Array.isArray(persona.trustFactorsNeeded) ? persona.trustFactorsNeeded.slice(0, 5).join("; ") : ""}
+Problem they think they have: ${persona.problemTheyThinkTheyHave || ""}
+Problem they actually have: ${persona.problemTheyActuallyHave || ""}
+Transformation: "${persona.transformationGoal?.beforeState || persona.beforeState || ""}" → "${persona.transformationGoal?.afterState || persona.afterState || ""}"
 
 === RESEARCH INTELLIGENCE ===
 AI Search Queries to Answer: ${(research.aiSearchQueries || []).join(", ")}
+Exact Search Intents: ${(research.exactSearchIntents || []).join(", ")}
+Real User Voice (Reddit/Quora): ${(research.redditVoicePhrases || []).join("; ")}
 Trust Signals to Include: ${(research.trustSignals || []).join(", ")}
 
 === COMPETITOR GAPS TO EXPLOIT ===
@@ -45,11 +61,14 @@ WRITING RULES:
 4. TRANSFORMATION: Guide from current pain to desired success with concrete steps.
 5. TRUST-BUILDING: Include specific examples, data points, and relatable scenarios.
 6. NO CLICHÉS: Never use "In today's fast-paced world", "Unleash", "Dive deep", "Ultimate guide". Write like a mentor talking to the reader.
-7. ACCOUNTING CONTEXT: All examples, scenarios, and advice must be specific to accounting/finance/commerce careers.
+7. ${course === "DGM" ? "MARKETING CONTEXT: All examples and advice must be specific to digital marketing / growth / performance careers." : "ACCOUNTING CONTEXT: All examples, scenarios, and advice must be specific to accounting/finance/commerce careers."}
 8. AI-SEARCH FRIENDLY: Naturally answer the AI search queries within the text.
 9. READABILITY: Short paragraphs, bullet points, bold text for emphasis.
 10. COMPETITOR DIFFERENTIATION: Address the emotional gaps competitors miss.
 11. NO LOCATIONS: DO NOT mention the city name (e.g., Kolkata, Lucknow) or target state in the content. Keep it universally applicable.
+12. FEAR-OF-INACTION REALISM: In one section, honestly show the cost of doing nothing (stagnation, missed opportunities, salary gap) — without doom-scrolling or fake urgency.
+13. ANSWER REAL OBJECTIONS: Address the persona's exact objections inside the content (e.g. "will this really get me a job?", "is it worth the money?") rather than ignoring them.
+14. GROUND TRUST: Weave in the trust factors the persona needs (placement proof, practical curriculum, mentor credibility) naturally — never as a bulleted ad.
 
 Respond in this EXACT format (first a JSON metadata block, then the markdown content):
 

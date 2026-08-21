@@ -1,5 +1,6 @@
 const { generateBest } = require("./clients/providerRouter");
 const safeParseJSON = require("./jsonParser/jsonParser");
+const { journeyStagePrompt, programContextPrompt } = require("../data/buyerJourneyIntel");
 
 function normalizeList(value, limit = 0) {
   const items = Array.isArray(value) ? value.filter(Boolean) : [];
@@ -12,9 +13,10 @@ function joinList(value, fallback = "") {
 }
 
 /**
- * STAGE-SPECIFIC COPYWRITING FRAMEWORK (industry-level, buyer-journey).
- * Each stage uses a proven direct-response formula so every message
- * justifies its stage and differs from the others.
+ * STAGE-SPECIFIC COPYWRITING FRAMEWORK (buyer-journey grounded).
+ * Each stage uses a proven direct-response formula + the journey file's
+ * 7 counterparts (user action, touchpoints, emotional state, pain points,
+ * opportunity, education environment, learning objective).
  */
 function stageFramework(funnelStage, objective, slotKey) {
   const stage = funnelStage || "1_AWARENESS";
@@ -41,11 +43,14 @@ COPYWRITING FRAMEWORK: AIDA Desire/Action + honest urgency
   };
   return `${frameworks[stage] || frameworks["1_AWARENESS"]}
 OBJECTIVE (from calendar): ${objective || ""}
-DIVERSITY: This is slot "${slotKey || "unknown"}" in a 6-message sequence. Your hook, opening, bullets, and structure MUST differ from every other slot. Never repeat a phrasing another slot already used.`;
+DIVERSITY: This is slot "${slotKey || "unknown"}" in a 6-message sequence per course. Your hook, opening, bullets, and structure MUST differ from every other slot. Never repeat a phrasing another slot already used.
+\n=== BUYER JOURNEY STAGE CONTEXT ===
+${journeyStagePrompt(stage)}`;
 }
 
 async function whatsappGeneratorAgent(blueprint, persona, research, competitor, blogResult, context = {}) {
   const blogTitle = blogResult?.title || blueprint.blogTitle || "";
+  const course = context.course || blueprint.course || "CBA";
 
   // Fetch LIVE website data so the message revolves around the real offers
   const { getWebsiteContext } = require("../services/websiteContext");
@@ -53,6 +58,8 @@ async function whatsappGeneratorAgent(blueprint, persona, research, competitor, 
   const websiteContextText = website?.context
     ? `\n=== LIVE WEBSITE DATA (Charters Union) — PRIMARY SOURCE OF TRUTH ===\n${website.context}\n`
     : "";
+
+  const programBlock = context.programSpec ? programContextPrompt(course) : "";
 
   const systemPrompt = `You are a senior WhatsApp campaign strategist for CHARTES UNION OF BUSINESS — an industry-led business education brand offering CBA™ (Certified Business Accountant), DGM™ (Digital Growth & Marketing), and TBM™ (Technology & Business Management).
 
@@ -65,11 +72,14 @@ CRITICAL RULES:
 - Ground EVERY claim in the LIVE WEBSITE DATA above. NEVER invent programs, fees, stats, placements, or faculty.
 - Use the persona's real research voice (Quora/Reddit/Google phrases) — the message must sound like it was written for ONE person, not a broadcast.
 - Do NOT mention city/state names in the message body.
-- The message MUST follow the stage framework below. NEVER mix stages.`;
+- The message MUST follow the stage framework below. NEVER mix stages.
+- Write for the ${course} course ONLY: ${programBlock ? "use its program context (promise, objections, trust factors) for the topic; never reference the other course's concerns." : ""}`;
 
   const userPrompt = `Write ONE WhatsApp campaign message for Charters Union of Business promoting its real programs (CBA/DGM/TBM) to this specific audience.
 
 ${stageFramework(context.funnelStage, context.objective, context.slotKey)}
+
+${programBlock}
 
 === STRATEGIC BLUEPRINT ===
 Blog Title: ${blogTitle}
@@ -82,11 +92,18 @@ Target Keywords: ${joinList(blueprint.targetKeywords)}
 
 === AUDIENCE PSYCHOLOGY (from research) ===
 Reader: ${persona.buyerPersona || "Accounting learner"}
+Character Snapshot: ${persona.characterSnapshot || ""}
 Identity Belief: ${persona.identityBelief || ""}
 Hidden Fears: ${joinList(persona.hiddenFears)}
+Fear of Inaction: ${joinList(persona.fearOfInaction)}
 Live Situations: ${joinList(persona.liveSituations, 3)}
 Emotional Triggers: ${joinList(persona.emotionalTriggers)}
-Their Own Words (Quora/Reddit/Google voice): ${joinList(research.aiSearchQueries)}
+Objections They Hold: ${joinList(persona.objectionsBeforePurchase?.exactObjections || persona.purchaseBarriers)}
+Trust Factors They Need: ${joinList(persona.trustFactorsNeeded, 4)}
+Messaging That Resonates: ${joinList(persona.messagingThatResonates, 3)}
+Their Own Words (Quora/Reddit/Google voice): ${joinList(research.redditVoicePhrases)} ${joinList(research.aiSearchQueries)}
+Buyer-Vs-User: ${persona.buyerVsUser?.dynamic || ""}
+Transformation: "${persona.transformationGoal?.beforeState || ""}" → "${persona.transformationGoal?.afterState || ""}"
 
 === PROOF INTELLIGENCE (use only what's in LIVE WEBSITE DATA) ===
 Trust Signals: ${joinList(research.trustSignals)}
@@ -103,6 +120,7 @@ CTA Goal: ${context.ctaGoal || ""}
 Core Angle: ${context.coreAngle || ""}
 Audience Category: ${context.audienceCategory || persona.buyerPersona || "Accounting audience"}
 CTA URL Path: ${context.ctaUrlPath || "/blogs"}
+Course: ${course}
 
 Output EXACTLY this JSON structure:
 {

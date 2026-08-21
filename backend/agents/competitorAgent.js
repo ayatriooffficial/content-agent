@@ -13,10 +13,12 @@ const { generateJSON } = require("./clients/generateJSON");
 const { PRIMARY_COMPETITORS, getCompetitorContext } = require("../config/competitors");
 const safeParseJSON = require("./jsonParser/jsonParser");
 
-async function competitorAgent(competitorWebsites, personaProfile, researchData) {
-  // Use hardcoded competitors + any additional ones passed in
-  const allCompetitors = getCompetitorContext();
-  const additionalCompetitors = (competitorWebsites || []).filter(c => 
+async function competitorAgent(competitorWebsites, personaProfile, researchData, options = {}) {
+  // Use hardcoded competitors + any additional ones passed in; callers can
+  // override the full context (e.g. the DGM run uses digital-marketing
+  // competitors instead of the accounting set) via options.competitorContext.
+  const allCompetitors = options.competitorContext || getCompetitorContext();
+  const additionalCompetitors = (competitorWebsites || []).filter(c =>
     !PRIMARY_COMPETITORS.some(pc => pc.url.includes(c) || c.includes(pc.url))
   );
 

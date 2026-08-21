@@ -1,5 +1,6 @@
 const { generateJSON } = require("./clients/generateJSON");
 const safeParseJSON = require("./jsonParser/jsonParser");
+const { buyerJourneyPromptBlock } = require("../data/buyerJourneyIntel");
 
 /**
  * Orchestrator Agent — STEP 4 of the autonomous pipeline. The Central Brain.
@@ -18,6 +19,8 @@ async function orchestratorAgent(persona, research, competitor, memory, domainRe
 
   const prompt = `You are the Chief Content Strategist for CHARTES UNION OF BUSINESS — an industry-led business education brand offering CBA™ (Certified Business Accountant), DGM™ (Digital Growth & Marketing), and TBM™ (Technology & Business Management) programs.
 ${websiteContextText}
+=== BUYER JOURNEY INTELLIGENCE ===
+${buyerJourneyPromptBlock()}
 === DOMAIN POSITIONING ===
 Industry: ${domainResult.industry}
 Domain: ${domainResult.domain}
@@ -28,11 +31,18 @@ Target Location: ${targetLocation}
 
 === PERSONA INTELLIGENCE ===
 Reader: ${persona.buyerPersona}
+Character Snapshot: ${persona.characterSnapshot || ""}
 Identity Belief: ${persona.identityBelief}
 Hidden Fears: ${Array.isArray(persona.hiddenFears) ? persona.hiddenFears.join("; ") : (persona.hiddenFears || "")}
+Fear of Inaction: ${Array.isArray(persona.fearOfInaction) ? persona.fearOfInaction.join("; ") : ""}
 Live Situations: ${Array.isArray(persona.liveSituations) ? persona.liveSituations.slice(0, 3).join("; ") : (persona.liveSituations || "")}
 Emotional Triggers: ${Array.isArray(persona.emotionalTriggers) ? persona.emotionalTriggers.join(", ") : (persona.emotionalTriggers || "")}
-Transformation: From "${persona.beforeState}" to "${persona.afterState}"
+Objections: ${Array.isArray(persona.objectionsBeforePurchase?.exactObjections) ? persona.objectionsBeforePurchase.exactObjections.slice(0, 5).join("; ") : ""}
+Trust Factors: ${Array.isArray(persona.trustFactorsNeeded) ? persona.trustFactorsNeeded.slice(0, 5).join("; ") : ""}
+Best Marketing Angles: ${Array.isArray(persona.bestMarketingAngles) ? persona.bestMarketingAngles.slice(0, 3).join("; ") : ""}
+Offer Positioning: ${persona.offerPositioning || ""}
+Buyer-vs-User: ${persona.buyerVsUser?.dynamic || ""}
+Transformation: From "${persona.transformationGoal?.beforeState || persona.beforeState}" to "${persona.transformationGoal?.afterState || persona.afterState}"
 
 === RESEARCH INTELLIGENCE ===
 Emotional Search Drivers: ${(research.emotionalSearchPatterns || []).join(", ")}
@@ -64,6 +74,8 @@ Synthesize ALL intelligence above into a content blueprint. The content must:
 5. Build trust using the signals they need
 6. NOT repeat any previous titles
 7. Target localized SEO keywords
+8. Follow the BUYER JOURNEY's psychological transformation pipeline: from "confused/lost/scared" to "trusts the institute, sees a clear path, ready to invest" — the blueprint must move the reader along that arc.
+9. Position the offer using the persona's offer positioning and best marketing angles, and align the emotional angle with the buyer journey messaging pillars.
 
 CRITICAL RULES:
 - Output ONLY valid JSON. No markdown, no prose, no code fences.

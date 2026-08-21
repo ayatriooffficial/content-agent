@@ -11,7 +11,10 @@
  *   Phase 4: JS recalculates scores, applies memory diversity penalty, picks the winner.
  *
  * NO hardcoded fallback: if any AI phase fails, this THROWS so the pipeline run
- * is marked failed visibly (admin retries) instead of injecting "12th Pass" / "Kolkata".
+ * is marked failed visibly (admin retries) instead of injecting canned data.
+ *
+ * The ONE deliberate static value: Kolkata is kept as a city candidate every
+ * run because it is the brand's home operating region (buyer journey brief).
  */
 const { generateJSON } = require("./clients/generateJSON");
 const { groqGenerate } = require("./clients/groqClient");
@@ -19,6 +22,7 @@ const { getCompetitorContext } = require("../config/competitors");
 const { memoryAgent } = require("./memoryAgent");
 const safeParseJSON = require("./jsonParser/jsonParser");
 const { getWebsiteContext } = require("../services/websiteContext");
+const { getPrimaryLocationContext } = require("../config/locations");
 
 // ═══════════════════════════════════════════════════════════════
 // HELPER: Retry an async function up to N times with delay
@@ -114,8 +118,12 @@ Think like a researcher who spends time reading actual Reddit posts, YouTube com
 
   const researchUserPrompt = `Perform a comprehensive market opportunity analysis for Indian accounting education content.
 
-=== LIVE CHARTE RS UNION OFFERINGS (ground every insight in these REAL programs) ===
+=== LIVE CHARTERS UNION OFFERINGS (ground every insight in these REAL programs) ===
 ${websiteContextText}
+
+=== HOME MARKET (PRIMARY OPERATING REGION — Charters Union is Kolkata/Howrah based) ===
+Use this as the demand anchor: the brand operates from Kolkata/Howrah, and its buyer journey is written for that local market (middle-class family pressure, employability anxiety, weak spoken-English confidence). Keep Kolkata/Howrah demand in the analysis; only rank other cities above it when the evidence is genuinely stronger.
+${getPrimaryLocationContext()}
 
 === COMPETITOR LANDSCAPE ===
 ${competitorContext}
@@ -126,11 +134,11 @@ ${memorySummary.summary}
 === YOUR RESEARCH TASK ===
 Based on the REAL Charters Union programs (CBA/DGM/TBM) and current market signals, identify:
 
-1. WHO is searching for this kind of education RIGHT NOW? — Give 4-6 SPECIFIC audience segments (e.g., "B.Com graduates stuck in Tally data-entry jobs", "CA Foundation aspirants who failed twice", "12th-pass commerce students whose parents want a 'safe' career"). Be specific, vivid, and grounded in the real programs. DO NOT use generic labels like "students" or "professionals".
+1. WHO is searching for this kind of education RIGHT NOW? — Give 4-6 SPECIFIC, grounded audience segments. Create vivid labels that describe a real person's situation (career stage + pain + goal) — do NOT reuse generic template labels like "12th Pass Commerce Student" or "College-Level Student", and do NOT copy any example segment names. Each must feel like it was discovered from real job boards, Reddit, YouTube comments, and college groups.
 
 2. FOR EACH segment: their exact Google search queries, primary emotional pain, trending topics, competitor content gaps, and content angle opportunities.
 
-3. WHICH CITIES show the strongest demand for these programs? — Name 3-5 specific Indian cities/tiers with reasoning (job market, college density, employer demand, cost sensitivity).
+3. WHICH CITIES show the strongest demand for these programs? — Name 3-5 specific Indian cities/tiers with reasoning (job market, college density, employer demand, cost sensitivity). Kolkata/Howrah must be evaluated first as the home market.
 
 4. OVERALL market trends, competitor weaknesses, emotional opportunities, and SEO keyword gaps.
 
@@ -195,6 +203,9 @@ ${memorySummary.summary}
 === WEBSITE OFFERINGS (ground the segments in these real programs) ===
 ${websiteContextText.substring(0, 2000)}
 
+=== HOME MARKET (MUST be a city candidate) ===
+The brand's home market is Kolkata/Howrah (its buyer journey is Kolkata-specific). Include Kolkata among the discovered cities unless the research evidence explicitly says the demand is absent there.
+
 Output EXACTLY this JSON structure (no extra text):
 {
   "audienceCategories": [
@@ -229,6 +240,16 @@ Output EXACTLY this JSON structure (no extra text):
     // Keep 3-5 audiences + up to 5 cities
     discovered.audienceCategories = discovered.audienceCategories.slice(0, 5);
     discovered.cities = discovered.cities.slice(0, 5);
+
+    // Home-market guarantee: Kolkata/Howrah is the brand's actual operating
+    // region (per the buyer journey brief) — always keep it as a candidate so
+    // the pipeline can never drift wholesale away from the real business.
+    if (!discovered.cities.some(c => String(c.city || "").toLowerCase().includes("kolkata"))) {
+      console.log("   ↳ Injecting Kolkata as home-market city candidate (buyer journey region).");
+      discovered.cities.unshift({ city: "Kolkata", reason: "Home operating region (Kolkata/Howrah) per the buyer journey brief." });
+      discovered.cities = discovered.cities.slice(0, 5);
+    }
+
     console.log(`  [Phase 2] ✅ Discovered ${discovered.audienceCategories.length} audiences: ${discovered.audienceCategories.map(a => a.name).join(" | ")}`);
     console.log(`  [Phase 2] ✅ Discovered cities: ${discovered.cities.map(c => c.city).join(" | ")}`);
   } catch (err) {
