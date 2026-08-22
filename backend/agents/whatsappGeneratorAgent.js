@@ -122,17 +122,40 @@ Audience Category: ${context.audienceCategory || persona.buyerPersona || "Accoun
 CTA URL Path: ${context.ctaUrlPath || "/blogs"}
 Course: ${course}
 
+CRITICAL FORMATTING REQUIREMENT (Native WhatsApp Message Format):
+WhatsApp does NOT support HTML tags (like <u> or <ins>) and does NOT support Markdown headers (# or ##).
+Use only native WhatsApp formatting styles:
+- Bold: *text* (used for headings, names, metrics, key phrases)
+- Italics: _text_ (used for closing questions, tone, and emphasis)
+- Strikethrough: ~text~ (for comparisons/cross-outs)
+- Monospace: \`\`\`text\`\`\`
+- Block Quote: > text (for quote blocks and pain points)
+- Bullet List: • *Topic:* description (or * / -)
+
+The "whatsappMessage" field MUST follow this exact visual layout:
+1. Header Greeting: "*{NAME} ji,*" (or "*{NAME},*")
+2. Pain Point Quote Block: A short 2 to 2.5 line quote block using "> " syntax describing the exact practical skills conflict.
+3. Bridge Line: "At Charters Union, we help you bridge the degree-to-corporate gap with zero friction:"
+4. Bold Section Heading: "*Why Top Recruiters Hire ${course}™ Graduates:*" (DO NOT use <u> or # headings — use *Bold* formatting)
+5. 3 Bullet Points: Each bullet must start with "• *Feature/Skill:* Description and real metrics."
+6. Closing Question in Italics: "_Would you like to check your AI Career-Readiness Score this week?_"
+7. Visit Footer:
+🌐 *Visit:* chartersunion.com
+📝 *Apply:* chartersunion.com/apply
+📞 *Call:* +91 9836465083
+
 Output EXACTLY this JSON structure:
 {
   "audienceSegment": "string",
   "headline": "EXACTLY the Approved Hook above, verbatim — do not rephrase or change topic",
-  "opening": "string (first line, written around the approved hook)",
-  "body": "string (2-4 sentences following the stage framework, around the approved hook)",
-  "bulletPoints": ["point 1", "point 2", "point 3"],
-  "whatsappMessage": "the FULL WhatsApp message as clean plain text starting with the approved hook (headline + body + CTA, no markdown, no **, no *)",
+  "quoteBlock": "string (the 2-line pain quote without >)",
+  "sectionHeading": "string (the bold section title, e.g. *Why Top Recruiters Hire ${course}™ Graduates:*)",
+  "bulletPoints": ["• *Topic:* description", "• *Topic:* description", "• *Topic:* description"],
+  "closingQuestion": "string (the italicized closing question)",
+  "whatsappMessage": "the FULL structured WhatsApp message incorporating greeting, quote bar >, bridge, bold section heading, bullets, closing question, and footer",
   "summary": "2 sentence summary of the WhatsApp strategy",
   "tone": "string",
-  "wordCount": 60,
+  "wordCount": 75,
   "ctaText": "string",
   "ctaUrlPath": "string",
   "metadata": {
@@ -150,9 +173,8 @@ Output EXACTLY this JSON structure:
       maxTokens: 3500,
       json: true,
       caller: `WhatsApp slot ${context.slotKey || "?"}`,
-      // WhatsApp chain: OpenRouter (Gemma 31B) → NVIDIA (MiniMax M3) → Groq (fast) → slow extras.
-      // NO Gemini — Gemini is Phase-1 only (research/calendar), not content.
-      order: ["OpenRouter", "NVIDIA", "Groq", "OpenRouter-Nemotron", "NVIDIA-GptOss"],
+      // WhatsApp chain: OpenRouter → NVIDIA → Groq → OpenRouter-Nemotron → NVIDIA-GptOss → Gemini-3.5-Flash-Lite → Gemini-3.1-Flash-Lite
+      order: ["OpenRouter", "NVIDIA", "Groq", "OpenRouter-Nemotron", "NVIDIA-GptOss", "Gemini-3.5-Flash-Lite", "Gemini-3.1-Flash-Lite"],
       openRouterModel: "google/gemma-4-31b-it:free",
       openRouterNemotronModel: "nvidia/nemotron-3-ultra-550b-a55b:free",
       nvidiaModel: "minimaxai/minimax-m3",

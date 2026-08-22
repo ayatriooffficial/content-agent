@@ -33,6 +33,30 @@ const emailCampaignSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    format: {
+      type: String,
+      default: "simulation", // simulation, webinar, table, case_study, urgency, final_call
+    },
+    simulations: {
+      type: [String],
+      default: [],
+    },
+    programDetails: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+    eventDetails: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+    tableData: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+    deadline: {
+      type: String,
+      default: "",
+    },
     programs: {
       type: [mongoose.Schema.Types.Mixed],
       default: [],

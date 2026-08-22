@@ -252,10 +252,24 @@ const PROGRAM_SPECS = {
     label: "Certified Business Accountant",
     domain: "accounting / finance / job-readiness",
     corePromise:
-      "Practical accounting skills + English + interview readiness with placement support for corporate and global companies.",
-    keyOutcomes: ["Job placement", "Practical accounting", "English speaking", "Interview readiness", "Professional confidence"],
+      "Practical accounting skills (SAP S/4HANA, TallyPrime, GST/TDS) + English + AI Career Engine + 100% in-class paid internship across 7 countries with 97.7% placement rate and ₹26.5 LPA average CTC.",
+    keyOutcomes: [
+      "97.7% Placement Rate",
+      "₹26.5 LPA Average CTC (3.05x jump)",
+      "SAP S/4HANA & TallyPrime Practical Certification",
+      "100% In-Class Paid Internship across 7 countries",
+      "Spoken English & Big 4 Interview Readiness",
+      "Weekly AI Career Engine progress scoring"
+    ],
     commonObjections: SHARED_OBJECTIONS,
-    trustFactors: TRUST_FACTORS,
+    trustFactors: [
+      "97.7% placement rate with verified offer letters",
+      "₹26.5 LPA average CTC with Big 4 recruiters (KPMG, PwC, EY, Deloitte, Saudi Aramco)",
+      "100% in-class paid internship across India, Dubai, US, Singapore, Saudi Arabia, Qatar, Canada",
+      "1:1 mentorship from the top 1% CA/CMA/CFA professionals & Fortune 500 CXOs",
+      "No-cost EMI starting from ₹5,555/month and ₹16,000 Round 1 scholarships",
+      "Placement success-fee model where institute carries placement risk"
+    ],
     searchIntents: SEARCH_INTENT_EXAMPLES,
     competitorGroup: "accounting",
     personaDomain: "accounting",
@@ -265,21 +279,29 @@ const PROGRAM_SPECS = {
     label: "Digital Growth & Marketing",
     domain: "digital marketing / growth / performance marketing",
     corePromise:
-      "Hands-on digital marketing skills (campaigns, content, analytics, AI tools) with live projects and career support for agency & in-house marketing roles.",
-    keyOutcomes: ["Portfolio of real campaigns", "Live projects & internship", "Performance/growth marketing skills", "AI tools for marketing", "Interview readiness"],
+      "Hands-on performance marketing (supervised live ad spend, GA4, Meta/Google ads, AI automations) + 100% in-class paid internship with 92% placement rate and ₹24.5 LPA average CTC.",
+    keyOutcomes: [
+      "92% Placement Rate",
+      "₹24.5 LPA Average CTC (2.5x salary hike)",
+      "Supervised Live Meta & Google Ad Spend with ROAS targets",
+      "AI Marketing Automations & GA4 Analytics",
+      "100% In-Class Paid Internship across 7 countries",
+      "Portfolio of real client campaigns"
+    ],
     commonObjections: [
       "\"Isn't digital marketing saturated / just a trend?\"",
-      "\"I can learn it free from YouTube.\"",
-      "\"Will AI replace marketers?\"",
+      "\"I can learn it free from YouTube / reels.\"",
+      "\"Will AI replace performance marketers?\"",
       "\"No portfolio — who will hire me?\"",
       "\"Do I need to be creative/technical to do this?\"",
     ],
     trustFactors: [
-      "Real campaign results & case studies from learners",
-      "Live projects with actual business outcomes",
-      "Portfolio built during the course",
-      "Internship placement support",
-      "Alumni working in agencies / MNC marketing teams",
+      "92% placement rate with top brands (Google, Amazon, Flipkart, Zomato, GrowthX)",
+      "₹24.5 LPA average CTC (2.5x salary hike over entry freelancing)",
+      "Real ad-budget execution with mentor oversight, not theoretical case studies",
+      "100% in-class paid internship across 7 international tech hubs",
+      "1:1 mentorship from Growth Heads and CMOs",
+      "No-cost EMI starting from ₹5,555/month"
     ],
     searchIntents: {
       google: [

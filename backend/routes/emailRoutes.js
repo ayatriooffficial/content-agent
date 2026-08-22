@@ -75,11 +75,20 @@ router.patch("/emails/:id", async (req, res) => {
   }
 });
 
-router.patch("/emails/:id/status", async (req, res) => {
-  const { status } = req.body;
-  const allowedStatuses = ["pending", "approved", "rejected", "published"];
+function normalizeStatus(raw) {
+  const s = String(raw || "").toLowerCase().trim();
+  if (s === "approve" || s === "approved") return "approved";
+  if (s === "reject" || s === "rejected") return "rejected";
+  if (s === "publish" || s === "published") return "published";
+  if (s === "pending") return "pending";
+  return null;
+}
 
-  if (!allowedStatuses.includes(status)) {
+router.patch("/emails/:id/status", async (req, res) => {
+  const rawStatus = req.body?.status;
+  const status = normalizeStatus(rawStatus);
+
+  if (!status) {
     return res.status(400).json({ error: "Invalid email status." });
   }
 
@@ -92,9 +101,9 @@ router.patch("/emails/:id/status", async (req, res) => {
 
     if (!email) return res.status(404).json({ error: "Email campaign not found" });
 
-    // ── Excel connector: on approval, write the approved email into the
+    // ── Excel connector: on approval or publish, write the approved email into the
     //    shared sheet's "Email Messages" tab so the email-bot can send it.
-    if (status === "approved") {
+    if (status === "approved" || status === "published") {
       try {
         let calendar = null;
         if (email.calendarId) {
@@ -108,11 +117,14 @@ router.patch("/emails/:id/status", async (req, res) => {
       }
     }
 
-    // Only reflect a terminal outcome back onto the calendar slot.
-    // "approved" stays GENERATED on the slot until the email-bot actually
-    // sends it (that transition is synced separately, from the root project).
-    if (email.calendarId && email.slotKey && status === "rejected") {
-      await syncSlotStatus(email.calendarId, email.slotKey, "email", "REJECTED");
+    if (email.calendarId && email.slotKey) {
+      if (status === "rejected") {
+        await syncSlotStatus(email.calendarId, email.slotKey, "email", "REJECTED");
+      } else if (status === "published") {
+        await syncSlotStatus(email.calendarId, email.slotKey, "email", "PUBLISHED");
+      } else if (status === "approved") {
+        await syncSlotStatus(email.calendarId, email.slotKey, "email", "GENERATED");
+      }
     }
 
     return res.status(200).json({ success: true, email: normalizeEmail(email) });

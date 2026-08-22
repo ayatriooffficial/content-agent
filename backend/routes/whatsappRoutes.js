@@ -75,31 +75,35 @@ router.patch("/whatsapp/:id", async (req, res) => {
   }
 });
 
-router.patch("/whatsapp/:id/status", async (req, res) => {
-  const { status } = req.body;
-  const allowedStatuses = ["pending", "approved", "rejected", "published"];
+function normalizeStatus(raw) {
+  const s = String(raw || "").toLowerCase().trim();
+  if (s === "approve" || s === "approved") return "approved";
+  if (s === "reject" || s === "rejected") return "rejected";
+  if (s === "publish" || s === "published") return "published";
+  if (s === "pending") return "pending";
+  return null;
+}
 
-  if (!allowedStatuses.includes(status)) {
+router.patch("/whatsapp/:id/status", async (req, res) => {
+  const rawStatus = req.body?.status;
+  const status = normalizeStatus(rawStatus);
+
+  if (!status) {
     return res.status(400).json({ error: "Invalid WhatsApp status." });
   }
-
-  // No live send integration yet — approval auto-completes to "published"
-  // (mirrors the blog behaviour) instead of sitting in an "approved" limbo
-  // state with nothing to actually deliver it.
-  const finalStatus = status === "approved" ? "published" : status;
 
   try {
     const message = await WhatsAppCampaign.findByIdAndUpdate(
       req.params.id,
-      { status: finalStatus },
+      { status },
       { new: true }
     );
 
     if (!message) return res.status(404).json({ error: "WhatsApp campaign not found" });
 
-    // ── Excel connector: on approval, write the approved message into the
+    // ── Excel connector: on approval or publish, write the approved message into the
     //    shared sheet's "Messages" tab so the whatsapp-bot can send it.
-    if (finalStatus === "published") {
+    if (status === "approved" || status === "published") {
       try {
         let calendar = null;
         if (message.calendarId) {
@@ -114,9 +118,12 @@ router.patch("/whatsapp/:id/status", async (req, res) => {
     }
 
     if (message.calendarId && message.slotKey) {
-      const slotStatus = finalStatus === "published" ? "PUBLISHED" : finalStatus === "rejected" ? "REJECTED" : null;
-      if (slotStatus) {
-        await syncSlotStatus(message.calendarId, message.slotKey, "whatsapp", slotStatus);
+      if (status === "rejected") {
+        await syncSlotStatus(message.calendarId, message.slotKey, "whatsapp", "REJECTED");
+      } else if (status === "published") {
+        await syncSlotStatus(message.calendarId, message.slotKey, "whatsapp", "PUBLISHED");
+      } else if (status === "approved") {
+        await syncSlotStatus(message.calendarId, message.slotKey, "whatsapp", "GENERATED");
       }
     }
 

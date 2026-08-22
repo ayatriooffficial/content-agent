@@ -43,11 +43,20 @@ async function generateBest(systemPrompt, userPrompt, options = {}) {
 
   const attempts = [
     {
-      name: "Gemini",
-      model: () => options.geminiModel || process.env.GEMINI_MODEL || "gemini-3.5-flash-lite",
+      name: "Gemini-3.5-Flash-Lite",
+      model: () => "gemini-3.5-flash-lite",
       enabled: !!process.env.GEMINI_API_KEY,
       run: () => geminiGenerate(systemPrompt, userPrompt, {
-        model: options.geminiModel || process.env.GEMINI_MODEL || "gemini-3.5-flash-lite",
+        model: "gemini-3.5-flash-lite",
+        temperature, maxTokens, json,
+      }),
+    },
+    {
+      name: "Gemini-3.1-Flash-Lite",
+      model: () => "gemini-3.1-flash-lite",
+      enabled: !!process.env.GEMINI_API_KEY,
+      run: () => geminiGenerate(systemPrompt, userPrompt, {
+        model: "gemini-3.1-flash-lite",
         temperature, maxTokens, json,
       }),
     },
