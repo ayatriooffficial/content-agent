@@ -1,204 +1,207 @@
 /**
  * buyerJourneyIntel.js
  * ------------------------------------------------------------------
- * The company's buyer-journey intelligence module, condensed from the
- * `actual byer journey.txt` brief (Buyer Persona + Customer Journey).
+ * The company's buyer-journey intelligence module.
  *
- * Pure static DATA — no LLM calls here. Every agent renders the prompt
- * blocks it needs via the helpers below, so the buyer-journey psychology
- * (3-stage funnel, 7 counterparts per stage, messaging pillars, offer
- * hooks, objections, trust factors) is available everywhere WITHOUT
- * duplicating prompt text across agents.
+ * PURE BEHAVIORAL PROTOCOL & PSYCHOLOGY DIRECTIVES — NO HARDCODED FACTS.
+ * All factual grounding (fees, placement stats, CTC, course durations,
+ * faculty, scholarships) comes dynamically from live websiteContext.
  *
- * The funnels in the system are:
- *   1_AWARENESS  -> journey Awareness  (educate, no sell)
- *   2_ENGAGEMENT -> journey Interest + Consideration (proof, nurture)
- *   3_CONVERSION -> journey Decision   (honest CTA)
- * Post-Purchase/Advocacy stages are intentionally out of scope.
+ * This file defines:
+ *   - 3 Funnel Stages with 8 behavioral dimensions:
+ *     (customer_action, touchpoint, emotion, pain_point, opportunity,
+ *      content_hooks, messaging_framework, common_mistakes)
+ *   - Step-by-step copywriting protocols for each stage
+ *   - Messaging pillars & psychology transformation frames
+ *   - Universal objection handling & trust verification principles
+ *   - Program specs for CBA™, DGM™, and TBM™
  */
 
 const OFFER_CONTEXT = {
   brand: "Charters Union of Business",
-  courseName: "Certified Business Accountant (CBA)",
+  courseName: "Industry-Led Career Programs (CBA™ / DGM™ / TBM™)",
   targetAudience: [
     "First-year college students",
     "Second-year college students",
     "Final-year college students",
     "Fresh graduates",
     "Unemployed graduates",
-    "Early-career strugglers",
+    "Early-career switchers",
   ],
-  courseTopic: "Job readiness (practical accounting + English + interview skills)",
-  price: "₹35,000 – ₹50,000",
-  duration: "7 months",
+  courseTopic: "Job readiness (practical skills + English communication + interview mastery)",
   deliveryFormat: "In-class / on-campus / hybrid",
-  region: "Kolkata / Howrah / near Kolkata city",
+  region: "Pan-India & Global Internships across 7 Countries",
   promisedOutcomes: [
-    "Job placement",
-    "Job readiness",
-    "Jobs at global companies",
-    "Improved English speaking",
-    "Interview readiness",
-    "Professional confidence",
-    "Career growth",
+    "Job placement at top multinational companies",
+    "Practical industry simulations & live client projects",
+    "100% in-class paid internships across 7 international countries",
+    "Spoken English & corporate boardroom communication",
+    "Big 4 / MNC interview readiness scoring",
+    "AI Career Engine progress tracking",
+    "Measurable career & salary growth",
   ],
 };
 
 /**
- * The 3 active funnel stages, each with the journey file's 7 counterparts:
- * User Action, Engagement Touchpoints, Emotional State, Pain Points,
- * Opportunity, Education Environment, Learning Objective.
+ * The 3 active funnel stages with 8 structured behavioral dimensions
+ * and exact step-by-step copywriting protocols.
  */
 const JOURNEY_STAGES = {
   "1_AWARENESS": {
-    stageLabel: "Awareness (Discovery)",
-    copyFramework: "PAS — Problem → Agitate → Curiosity gap. NO solution reveal, NO enrollment push.",
-    userAction:
-      "Scrolling Instagram/YouTube/Google, seeing an ad or a peer post, stopping on a pain-driven or aspiration-driven hook.",
-    engagementTouchpoints:
-      "Instagram Reels/ads, YouTube ads & shorts, Google SEO results, AI-overview answers, peer referrals, WhatsApp forwards from college groups.",
-    emotionalState:
-      "Confused, slightly anxious about the future, curious but not ready to act; comparing themselves with placed peers.",
-    painPoints:
-      "Degree feels worthless, no practical skills, no idea what companies expect, fear of wasting time after graduation.",
-    opportunity:
-      "Scroll-stopping hooks that name their exact fear (pattern interrupts), pure education with NO sales pressure, establishing the institute as the guide.",
-    educationEnvironment:
-      "College campus, home, peer WhatsApp/Telegram groups, social media algorithm feeding career content.",
-    learningObjective:
-      "Understand that 'degree alone doesn't get hired' and that a job-ready skills gap exists and can be fixed.",
+    stageLabel: "Awareness (Problem & Discovery)",
+    messaging_framework: `PAS Framework (5-Step Protocol):
+  Step 1 — Name the Silent Pain: Acknowledge that a degree alone is no longer enough in the AI and modern corporate era.
+  Step 2 — Remove the Shame: Tell the student that the problem is not their inherent ability — theoretical college curriculums failed to teach modern practical tools.
+  Step 3 — Expose the Real Industry Gap: Name the specific gap between memorizing theory and what hiring managers actually test in corporate interviews.
+  Step 4 — Hint at the Guided Bridge: Mention hands-on tool mastery, practical exposure, and AI-driven direction — but DO NOT pitch the course yet.
+  Step 5 — Strictly NO CTA / Pitch: Do not ask them to call, enroll, or click an admission link in this message.`,
+    customer_action: "Scrolling social feeds (Reels/Shorts), searching career roadmaps, feeling insecure about graduation readiness without knowing what skills industry actually tests.",
+    touchpoint: "SEO discovery blogs, short-form video hooks, curiosity-driven emails, community WhatsApp discussion starters.",
+    emotion: "Anxious, slightly ashamed, comparing self to placed peers, skeptical of generic career advice, curious but passive.",
+    pain_point: "Degree has theory but zero practical skills; 0 callbacks on job applications; weak confidence in professional communication and interviews; resume looks empty.",
+    opportunity: "Validate their silent struggle with brutal empathy, make them feel deeply understood, name the hidden industry skill gap, and position practical mastery as the obvious missing link.",
+    content_hooks: [
+      "Why degrees get interviews, but practical simulation wins the offer.",
+      "The unspoken truth about why entry-level job hunting feels broken.",
+      "From uncertain graduate to industry-ready: what employers actually test.",
+      "The hidden skill gap college never warned you about."
+    ],
+    common_mistakes: "Do not talk about course pricing, syllabus, or institute features. Do not mention fees, EMI, or salary figures. Do not use generic clichés ('unlock your potential', 'transform your future'). Do not promise 100% placement in awareness copy. Do not sound urgent or salesy."
   },
   "2_ENGAGEMENT": {
-    stageLabel: "Interest + Consideration (Lead Nurturing)",
-    copyFramework: "Proof + Before/After — deliver evidence, invite a reply.",
-    userAction:
-      "Clicking through to the landing page / blog, saving posts, asking questions on WhatsApp/email, comparing institutes.",
-    engagementTouchpoints:
-      "Landing page, blogs, WhatsApp/Email/SMS nurturing sequence, success stories, salary proof, myth-busting content, retargeting ads.",
-    emotionalState:
-      "Hopeful but skeptical; needs proof this is real, needs to feel 'this is exactly for me', afraid of wasting money.",
-    painPoints:
-      "Placement claims feel fake, ₹50,000 is a big family decision, unsure if the course is practical or just another theory institute.",
-    opportunity:
-      "Trust signals (placement proof, parent-facing brochure, demo class), objection handling flows, before/after transformation stories, a reply-inviting question.",
-    educationEnvironment:
-      "Home with parents involved in the decision, college peer groups, review platforms, WhatsApp groups.",
-    learningObjective:
-      "Believe the institute delivers real job outcomes (placement + practical skills + English + interview) and is worth the investment.",
+    stageLabel: "Interest & Consideration (Proof & Transformation)",
+    messaging_framework: `Proof + Transformation Framework (6-Step Protocol):
+  Step 1 — Acknowledge the Skepticism: Validate that it is normal to be cautious and doubtful when evaluating career institutes.
+  Step 2 — Answer the Top Concern First: Address their specific worry (placement authenticity, weak English, non-technical background, or fee return).
+  Step 3 — Demonstrate Verified Proof: Share concrete student transformation case studies from similar backgrounds placed at named recruiters.
+  Step 4 — Highlight Institutional Differentiators: Weave in the AI Career Engine, 1:1 CXO Mentorship, and 7-Country International Immersion.
+  Step 5 — Introduce Financial Flexibility: Mention merit scholarships, no-cost EMI options, and risk-aligned success models from live website data.
+  Step 6 — Soft Reply / Demo Invite: Offer a free 1:1 Career Audit or live demo session rather than a hard enrollment pitch.`,
+    customer_action: "Reading curriculum breakdowns, reviewing verified alumni placements, comparing mentorship depth against competitors, asking questions on WhatsApp.",
+    touchpoint: "Detailed comparison blogs, nurturing email sequence with case studies, direct WhatsApp counselor Q&A, parent-facing program summaries.",
+    emotion: "Hopeful yet guarded ('Is this real or another theory institute?'), calculating return on investment, seeking parental confidence.",
+    pain_point: "Fear of unverified placement promises, worries about program rigor, concern over family investment security, questions about whether English fluency is a barrier.",
+    opportunity: "Present verified hiring partners, real case studies, 1:1 mentor credibility, role clarity (e.g. Accounts Executive, Growth Marketer), and de-risked financing options from live site data.",
+    content_hooks: [
+      "Real portfolio vs theoretical syllabus: what hiring managers examine.",
+      "How supervised industry simulation replaces years of entry-level struggle.",
+      "The exact checklist to verify legitimate career placement support.",
+      "Why 1:1 mentorship from practicing CXOs changes the placement game."
+    ],
+    common_mistakes: "Do not ask the student to enroll on first contact. Do not make vague claims without data grounding from live site. Do not ignore parental anxiety. Do not send brochures without context or personal explanation."
   },
   "3_CONVERSION": {
-    stageLabel: "Decision (Conversion)",
-    copyFramework: "AIDA Desire/Action + honest urgency — clear single CTA, no fake scarcity.",
-    userAction:
-      "Attending counselling/demo, bringing parents, checking EMI/scholarship, applying or booking a seat.",
-    engagementTouchpoints:
-      "Counseling call, demo class, parent counselling session, campus visit, WhatsApp/email final CTA, application page.",
-    emotionalState:
-      "Urgent but nervous about making the wrong choice; needs reassurance + a logical ROI case to carry home to parents.",
-    painPoints:
-      "Fee objections, fear of failing the course, fear of false placement promises, 'will my parents approve?'",
-    opportunity:
-      "Remove friction: EMI options, scholarship, clear 7-month roadmap, placement support framing, limited-seat honesty, direct 'talk to a counselor' CTA.",
-    educationEnvironment:
-      "Family decision table, guardian influence, campus/admissions office, one-on-one counseling.",
-    learningObjective:
-      "Believe the course is an investment with a clear ROI timeline, and the next step (apply / counselling) is safe and easy.",
-  },
+    stageLabel: "Decision & Action (Frictionless Commitment)",
+    messaging_framework: `AIDA + Frictionless Commitment Framework (7-Step Protocol):
+  Step 1 — Diagnose Fear First: Do not immediately pitch the program. Ask what they and their family are most worried about.
+  Step 2 — Mirror & Validate Concern: Repeat their concern in empathetic words so they feel heard.
+  Step 3 — Reframe the Investment: Position the program as a guided bridge with measurable salary multipliers and clear ROI.
+  Step 4 — Involve Parents & Guardians: Offer parent-friendly counseling and transparent curriculum roadmaps.
+  Step 5 — Present Transparent Financial Options: Present dynamic fee breakdowns, No-Cost EMI schedules, and seat booking options from live website data.
+  Step 6 — Highlight Verified Safety Nets: Emphasize risk-aligned placement models, mentor accountability, and live hiring partnerships.
+  Step 7 — Frictionless Soft Close: Provide a clear, single next step to reserve an upcoming batch seat or schedule a mentor demo.`,
+    customer_action: "Attending counseling sessions, reviewing EMI/scholarship breakdowns with parents, booking demo seats, reviewing placement records.",
+    touchpoint: "Admissions portal, counselor consultation, final-call email with fee breakdown table, WhatsApp booking link.",
+    emotion: "Decisive but looking for reassurance; needs clear next steps, transparent ROI proof, and family alignment.",
+    pain_point: "Last-minute hesitation on enrollment security, batch timing conflicts, application friction, 'what if my parents regret this decision?'",
+    opportunity: "Provide transparent fee breakdown, highlight merit scholarships, no-cost EMI flexibility, and direct counselor access from live site.",
+    content_hooks: [
+      "Your step-by-step roadmap to secure your upcoming batch seat.",
+      "How our success-aligned model de-risks your career investment.",
+      "Talk directly with an admissions mentor to map your personalized career plan.",
+      "Everything you need to know about EMI options, scholarships, and batch schedules."
+    ],
+    common_mistakes: "Never use manipulative fake urgency ('Seats ending in 10 minutes!'). Do not pitch price before diagnosing fear and explaining ROI. Never ignore the parents in the decision. Do not introduce complex multi-step forms."
+  }
 };
 
 const TRANSFORMATION_FRAME = {
   before:
-    "I am confused, lost, and scared about my career — degree but no practical skills, no direction, pressure at home.",
+    "I am confused, lost, and anxious about my career — degree but no practical skills, no direction, feeling family pressure.",
   after:
-    "I trust this institute, I see a clear path, and I'm ready to invest in my future.",
+    "I trust this institute, I see a clear path, and I am confident in my career ROI.",
 };
 
 const MESSAGING_PILLARS = [
-  "Degree is the start, not the finish",
+  "Degree is the starting line, not the finish",
   "Practical skills > theory — job-ready from day one",
-  "Placement-led transformation (before/after stories)",
-  "English speaking + interview confidence included",
-  "Global company readiness",
-  "Faculty-guided, not self-study chaos",
+  "Placement-led transformation with verified records",
+  "English communication + interview mastery included",
+  "Global company readiness across 7 countries",
+  "Faculty-guided 1:1 mentorship, not self-study chaos",
 ];
 
 const OFFER_HOOKS = [
-  "\"Your degree got you the interview — we get you the job.\"",
-  "From 'just another graduate at home' to placed professional.",
-  "What ₹50,000 can return: a career, not just a certificate.",
-  "7 months to job-ready — here's the exact week-by-week roadmap.",
-  "Employers aren't asking for your marksheet. They're asking for practical skills.",
-  "Desperate to prove your degree wasn't wasted? Start here.",
-  "The placement guarantee question, answered honestly.",
-  "Your parents are about to spend ₹50,000. Give them a reason to say yes.",
-  "Job-ready accounting + English + interviews — in one program.",
-  "Because 'I'll figure it out after graduation' doesn't work anymore.",
+  "\"Your degree got you the interview — practical mastery gets you the job.\"",
+  "From uncertain graduate to placed corporate professional.",
+  "What genuine industry simulation returns: a career, not just a certificate.",
+  "The step-by-step roadmap from college theory to corporate hiring.",
+  "Employers aren't asking for your marksheet. They're asking for practical capability.",
+  "The placement guarantee question, answered honestly with verified data.",
+  "Job-ready skills + English fluency + interview scoring — in one unified program.",
+  "Because 'I will figure it out after graduation' is no longer a viable strategy.",
 ];
 
 const SALES_TALKING_POINTS = [
-  "Anchor on the transformation, not the course: uncertain student → placed professional.",
-  "Bring the parent into the conversation: ROI timeline, placement records with company names + salaries, EMI options.",
-  "Resolve the #1 objection first: 'Will I actually get placed?' — show verified placement proof, not promises.",
-  "De-risk the decision: demo class, free counselling, scholarship, transparent curriculum.",
-  "Urgency without fear: honest batch deadlines and limited seats — never fake scarcity.",
-  "End every conversation with one clear next step (demo/counselling/application).",
+  "Anchor on transformation: uncertain student → placed corporate professional.",
+  "Bring the parent into the conversation: ROI timeline, verified recruiter records, flexible EMI options.",
+  "Resolve the #1 objection first: 'Will I actually get placed?' — show verified recruiter data, not empty claims.",
+  "De-risk the decision: demo class, free counselling, scholarships, transparent curriculum.",
+  "Urgency with integrity: honest batch deadlines and limited seats — never artificial scarcity.",
+  "End every conversation with one clear next step (demo session / counselling call / application).",
 ];
 
 const SHARED_OBJECTIONS = [
-  "\"Will this really get me a job?\"",
-  "\"Is the placement support genuine or just marketing?\"",
-  "\"What if I fail / can't keep up?\"",
-  "\"₹50,000 is too expensive for my family.\"",
-  "\"I can learn this free on YouTube.\"",
-  "\"Already tried another institute and it didn't work.\"",
-  "\"Can AI replace this skill anyway?\"",
-  "\"Do I need strong English already?\"",
-  "\"Is this just theory like college?\"",
-  "\"Will companies actually value this certificate?\"",
+  "\"Will this program genuinely lead to a high-growth job?\"",
+  "\"Is the placement support authentic or just marketing hype?\"",
+  "\"What if the curriculum is too fast-paced for my background?\"",
+  "\"Is the financial investment manageable for my family?\"",
+  "\"Can I learn these tools for free on YouTube?\"",
+  "\"I previously tried another coaching institute and it failed to deliver.\"",
+  "\"Will artificial intelligence replace entry-level roles in this field?\"",
+  "\"Do I need advanced English proficiency before joining?\"",
+  "\"Is this just another theoretical syllabus like college?\"",
+  "\"Will corporate employers actually value this certification?\"",
 ];
 
 const TRUST_FACTORS = [
-  "Real placement records with company names + salary figures",
-  "Student success stories from similar backgrounds (Kolkata/Hindi/Bengali speaking)",
-  "Demo class / free counselling session",
-  "Parent-facing brochure + parent counselling session",
-  "Transparent curriculum + clear 7-month roadmap",
-  "Faculty who have worked in real companies",
-  "Google reviews + local proof",
-  "Internship + live projects + portfolio building",
-  "EMI / scholarship / installment options",
-  "Spoken English + interview training visibly included",
+  "Verified placement records with named global recruiters and transparent salary ranges",
+  "Authentic student success stories from diverse academic and linguistic backgrounds",
+  "Free interactive demo class & 1:1 career counselling session",
+  "Transparent curriculum roadmap and weekly milestone benchmarks",
+  "Faculty who are practicing CXOs, CAs, CMAs, CFAs, and industry leaders",
+  "Live projects, portfolio building, and 100% in-class paid internships across 7 countries",
+  "No-cost EMI financing, merit scholarships, and risk-aligned fee structures",
+  "Integrated spoken English coaching and mock interview scoring",
 ];
 
 const SEARCH_INTENT_EXAMPLES = {
   google: [
-    "best accounting course in Kolkata for job",
-    "job-ready finance course after B.Com",
-    "placement guaranteed accounting course",
-    "practical accounting training with internship",
-    "high salary skills after B.Com",
+    "best practical job-ready training course after graduation",
+    "high salary skills and certifications for freshers",
+    "career program with verified placement support",
+    "practical skills training with paid internship",
+    "best career switch course with high ROI",
   ],
   aiQueries: [
-    "What should I learn to get an accounting job as a fresher?",
-    "Is a B.Com degree enough to get a job in India?",
-    "How fast can I get a job after a 7-month accounting course?",
-    "Is Tally/GST training enough to get hired?",
+    "What high-income skills should I learn after graduation?",
+    "Is a college degree alone enough to get hired at top MNCs?",
+    "How fast can I become job-ready through practical simulation?",
+    "What practical certifications do top recruiters look for?",
   ],
   redditQuoraVoice: [
-    "I have degree knowledge but not practical knowledge",
-    "I don't know where to start",
-    "Applied to 40 jobs on Naukri and got zero callbacks",
-    "My English is weak, will that block me?",
-    "Is placement support ever real?",
+    "I have theoretical knowledge from college but zero practical skills",
+    "I don't know where to start my job hunt",
+    "Applied to dozens of jobs online and got zero callbacks",
+    "My communication skills are holding me back in interviews",
+    "How do I verify if a career institute's placement claims are real?",
   ],
   platforms: [
     "Google Search", "YouTube", "Instagram (Reels)", "WhatsApp groups",
-    "Telegram study groups", "LinkedIn (observing)", "Quora", "Reddit",
-    "Naukri/Internshala/Indeed (discouraged by rejections)",
+    "Telegram study groups", "LinkedIn", "Quora", "Reddit", "Naukri/Internshala",
   ],
 };
 
-/** Competitor groups from the end of the buyer journey file. */
 const COMPETITOR_GROUPS = {
   accounting: [
     { name: "ICA Job Guarantee", url: "https://www.icajobguarantee.com/", category: "Job Guarantee Programs" },
@@ -220,7 +223,6 @@ const COMPETITOR_GROUPS = {
     { name: "MyIDCM", url: "https://www.myidcm.com/", category: "Digital Marketing Course" },
     { name: "SkillCircle", url: "https://skillcircle.in/", category: "Digital Marketing Course" },
     { name: "Outskill", url: "https://www.outskill.com/", category: "Career Programs" },
-    { name: "Kolkata Digital Marketing Institute", url: "https://kolkatadigitalmarketinginstitute.com/", category: "Local DM Institute" },
     { name: "Kraftshala", url: "https://www.kraftshala.com/", category: "Marketing Launchpad" },
     { name: "MICA AI-Powered DMC", url: "https://www.mica.ac.in/online-programmes/advanced-certificate-in-ai-powered-digital-marketing-communication/", category: "Online Certificate" },
   ],
@@ -231,43 +233,31 @@ const COMPETITOR_GROUPS = {
     { name: "Vedam", url: "https://www.vedam.org/", category: "PG Management" },
     { name: "Altera Institute", url: "https://alterainstitute.com/", category: "Tech & Business" },
     { name: "LIT School", url: "https://www.litschool.in/", category: "Leadership & Tech" },
-    { name: "ASM IB School", url: "https://asmibschool.com/admission/", category: "PG Management" },
     { name: "Scaler School of Business", url: "https://www.scaler.com/school-of-business/", category: "Tech Business Program" },
-    { name: "Bower School", url: "https://bowerschool.com/", category: "PG Management" },
     { name: "NextLeap", url: "https://nextleap.app/", category: "Tech Career Program" },
-    { name: "Polaris Campus", url: "https://polariscampus.com/", category: "PG Management" },
-    { name: "PW IOI Management", url: "https://www.pwioi.com/management/bba-management-program?courseId=67fec09232e42cadfe4234f5", category: "Management Program" },
   ],
 };
 
-/**
- * Per-program specs. CBA = journey file's main course; DGM = digital
- * marketing stream; TBM = reuses CBA psychology/content for now (per
- * business decision). Course facts (fees/placement) are pulled LIVE from
- * the website data at generation time — only the psychology is static here.
- */
 const PROGRAM_SPECS = {
   CBA: {
     code: "CBA",
     label: "Certified Business Accountant",
     domain: "accounting / finance / job-readiness",
     corePromise:
-      "Practical accounting skills (SAP S/4HANA, TallyPrime, GST/TDS) + English + AI Career Engine + 100% in-class paid internship across 7 countries with 97.7% placement rate and ₹26.5 LPA average CTC.",
+      "AI-powered practical accounting (SAP S/4HANA, TallyPrime, GST/TDS tax compliance) + Spoken English & Corporate Communication + 100% in-class paid internships across 7 countries with verified Big 4 placement pipeline.",
     keyOutcomes: [
-      "97.7% Placement Rate",
-      "₹26.5 LPA Average CTC (3.05x jump)",
-      "SAP S/4HANA & TallyPrime Practical Certification",
-      "100% In-Class Paid Internship across 7 countries",
-      "Spoken English & Big 4 Interview Readiness",
-      "Weekly AI Career Engine progress scoring"
+      "Industry-standard SAP S/4HANA & TallyPrime certification",
+      "100% In-Class Paid Internships across 7 countries",
+      "Spoken English & Big 4 Interview readiness scoring",
+      "AI Career Engine real-time skill-gap tracking",
+      "1:1 mentorship from top 1% CA/CMA/CFA professionals & Fortune 500 CXOs"
     ],
     commonObjections: SHARED_OBJECTIONS,
     trustFactors: [
-      "97.7% placement rate with verified offer letters",
-      "₹26.5 LPA average CTC with Big 4 recruiters (KPMG, PwC, EY, Deloitte, Saudi Aramco)",
-      "100% in-class paid internship across India, Dubai, US, Singapore, Saudi Arabia, Qatar, Canada",
-      "1:1 mentorship from the top 1% CA/CMA/CFA professionals & Fortune 500 CXOs",
-      "No-cost EMI starting from ₹5,555/month and ₹16,000 Round 1 scholarships",
+      "Verified placement records with named recruiters (KPMG, PwC, EY, Deloitte, Saudi Aramco)",
+      "100% in-class paid internships across 7 international countries (USA, Canada, Dubai, Singapore, Saudi Arabia, Qatar, India)",
+      "1:1 mentorship from top 1% CA/CMA/CFA professionals & Fortune 500 CXO leaders",
+      "No-cost EMI financing and merit-based Round 1 scholarships",
       "Placement success-fee model where institute carries placement risk"
     ],
     searchIntents: SEARCH_INTENT_EXAMPLES,
@@ -279,14 +269,13 @@ const PROGRAM_SPECS = {
     label: "Digital Growth & Marketing",
     domain: "digital marketing / growth / performance marketing",
     corePromise:
-      "Hands-on performance marketing (supervised live ad spend, GA4, Meta/Google ads, AI automations) + 100% in-class paid internship with 92% placement rate and ₹24.5 LPA average CTC.",
+      "Hands-on performance marketing (supervised live ad spend, GA4, Meta/Google ads, AI marketing automations) + 100% in-class paid internships across 7 countries with verified placement track.",
     keyOutcomes: [
-      "92% Placement Rate",
-      "₹24.5 LPA Average CTC (2.5x salary hike)",
       "Supervised Live Meta & Google Ad Spend with ROAS targets",
-      "AI Marketing Automations & GA4 Analytics",
-      "100% In-Class Paid Internship across 7 countries",
-      "Portfolio of real client campaigns"
+      "AI Marketing Automations & GA4 Analytics certification",
+      "100% In-Class Paid Internships across 7 international hubs",
+      "Portfolio of real client campaigns and ad dashboards",
+      "1:1 mentorship from Growth Heads and industry CMOs"
     ],
     commonObjections: [
       "\"Isn't digital marketing saturated / just a trend?\"",
@@ -296,30 +285,28 @@ const PROGRAM_SPECS = {
       "\"Do I need to be creative/technical to do this?\"",
     ],
     trustFactors: [
-      "92% placement rate with top brands (Google, Amazon, Flipkart, Zomato, GrowthX)",
-      "₹24.5 LPA average CTC (2.5x salary hike over entry freelancing)",
+      "Placement records with top brands (Google, Meta Partners, Amazon, Flipkart, Zomato, GrowthX)",
       "Real ad-budget execution with mentor oversight, not theoretical case studies",
-      "100% in-class paid internship across 7 international tech hubs",
+      "100% in-class paid internships across 7 international tech hubs",
       "1:1 mentorship from Growth Heads and CMOs",
-      "No-cost EMI starting from ₹5,555/month"
+      "Flexible No-Cost EMI and scholarship financing"
     ],
     searchIntents: {
       google: [
-        "digital marketing course in Kolkata for freshers",
-        "best digital marketing institute with placement",
-        "digital marketing salary for beginners",
-        "performance marketing career path",
-        "digital marketing course with internship",
+        "best practical digital marketing training for freshers",
+        "performance marketing course with real ad spend",
+        "digital marketing career path and salary scope",
+        "performance marketing course with internship",
       ],
       aiQueries: [
         "Is digital marketing a good career in 2026?",
-        "How do I get a digital marketing job without experience?",
-        "What skills do I need for performance marketing?",
+        "How do I get a digital marketing job without prior experience?",
+        "What skills do hiring managers look for in performance marketing?",
       ],
       redditQuoraVoice: [
         "Everyone says digital marketing is saturated — is it true?",
-        "How do I build a marketing portfolio as a fresher?",
-        "Can AI really do all marketing now?",
+        "How do I build a real marketing portfolio as a fresher?",
+        "Can AI really automate all performance marketing?",
       ],
       platforms: ["YouTube", "Instagram", "LinkedIn", "Google", "Quora", "Reddit", "WhatsApp groups"],
     },
@@ -328,130 +315,114 @@ const PROGRAM_SPECS = {
   },
 };
 
-// TBM defined AFTER CBA/DGM so it can safely reference them.
 PROGRAM_SPECS.TBM = {
   code: "TBM",
   label: "Technology & Business Management",
   domain: "technology / business management",
-  // Per business decision: TBM leads receive CBA-style content for now.
   corePromise: PROGRAM_SPECS.CBA.corePromise,
   keyOutcomes: PROGRAM_SPECS.CBA.keyOutcomes,
   commonObjections: PROGRAM_SPECS.CBA.commonObjections,
   trustFactors: PROGRAM_SPECS.CBA.trustFactors,
   searchIntents: PROGRAM_SPECS.CBA.searchIntents,
   competitorGroup: "pgManagement",
-  personaDomain: "accounting", // reuses CBA persona for now
+  personaDomain: "accounting",
 };
 
 /**
- * Renders a compact prompt block for one funnel stage (metadata + the 7
- * counterparts) — used by calendar, whatsapp and email prompts.
+ * Renders a structured behavioral prompt block for one funnel stage.
  */
 function journeyStagePrompt(stageKey) {
   const stage = JOURNEY_STAGES[stageKey] || JOURNEY_STAGES["1_AWARENESS"];
   return [
     `STAGE: ${stage.stageLabel}`,
-    `COPYWRITING FRAMEWORK: ${stage.copyFramework}`,
-    `User Action: ${stage.userAction}`,
-    `Engagement Touchpoints: ${stage.engagementTouchpoints}`,
-    `Emotional State: ${stage.emotionalState}`,
-    `Pain Points: ${stage.painPoints}`,
-    `Opportunity: ${stage.opportunity}`,
-    `Education Environment: ${stage.educationEnvironment}`,
-    `Learning Objective: ${stage.learningObjective}`,
+    `MESSAGING FRAMEWORK: ${stage.messaging_framework}`,
+    `Customer Action: ${stage.customer_action}`,
+    `Touchpoint Context: ${stage.touchpoint}`,
+    `Emotional State: ${stage.emotion}`,
+    `Core Pain Point: ${stage.pain_point}`,
+    `Copywriting Opportunity: ${stage.opportunity}`,
+    `Content Hook Inspiration: ${(stage.content_hooks || []).join(" | ")}`,
+    `Strict Guardrails / Mistakes to Avoid: ${stage.common_mistakes}`,
   ].join("\n");
 }
 
 /**
- * Renders the whole buyer-journey context block (shared psychology + all 3
- * stage definitions) for agents that need full funnel awareness.
+ * Full buyer-journey context block for agents that require complete funnel awareness.
  */
 function buyerJourneyPromptBlock() {
   return [
-    "=== BUYER JOURNEY INTELLIGENCE (Charters Union) ===",
-    `Course: ${OFFER_CONTEXT.courseName} | Price: ${OFFER_CONTEXT.price} | Duration: ${OFFER_CONTEXT.duration} | Region: ${OFFER_CONTEXT.region}`,
-    `Primary promise: ${OFFER_CONTEXT.promisedOutcomes.join(", ")}`,
-    `Transformation frame: FROM "${TRANSFORMATION_FRAME.before}" TO "${TRANSFORMATION_FRAME.after}"`,
+    "=== BUYER JOURNEY BEHAVIORAL PROTOCOL (Charters Union) ===",
+    `Course Context: ${OFFER_CONTEXT.courseName} | Delivery: ${OFFER_CONTEXT.deliveryFormat}`,
+    `Primary Value Proposition: ${OFFER_CONTEXT.promisedOutcomes.join(", ")}`,
+    `Psychological Transformation Frame: FROM "${TRANSFORMATION_FRAME.before}" TO "${TRANSFORMATION_FRAME.after}"`,
     "",
-    "Messaging pillars:",
+    "Core Messaging Pillars:",
     ...MESSAGING_PILLARS.map((p) => `  - ${p}`),
     "",
-    "Offer hooks (choose/adapt, never use verbatim-repetitively):",
+    "Offer Hook Principles:",
     ...OFFER_HOOKS.map((h) => `  - ${h}`),
     "",
-    "Shared objections the copy must address:",
+    "Universal Objections to Address:",
     ...SHARED_OBJECTIONS.map((o) => `  - ${o}`),
     "",
-    "Trust factors to weave in:",
+    "Trust-Building Verification Factors:",
     ...TRUST_FACTORS.map((t) => `  - ${t}`),
     "",
-    "Search intent examples (Google + AI queries + platform voice):",
-    `  Google: ${SEARCH_INTENT_EXAMPLES.google.join(" | ")}`,
-    `  AI queries: ${SEARCH_INTENT_EXAMPLES.aiQueries.join(" | ")}`,
-    `  Their own words: ${SEARCH_INTENT_EXAMPLES.redditQuoraVoice.join(" | ")}`,
-    `  Platforms: ${SEARCH_INTENT_EXAMPLES.platforms.join(", ")}`,
+    "Audience Search & Voice Patterns:",
+    `  Google Queries: ${SEARCH_INTENT_EXAMPLES.google.join(" | ")}`,
+    `  AI Search Queries: ${SEARCH_INTENT_EXAMPLES.aiQueries.join(" | ")}`,
+    `  User Voice (Reddit/Quora): ${SEARCH_INTENT_EXAMPLES.redditQuoraVoice.join(" | ")}`,
     "",
-    "Stage-by-stage journey (7 counterparts each):",
+    "3-Stage Behavioral Funnel Specifications:",
     "",
     ...["1_AWARENESS", "2_ENGAGEMENT", "3_CONVERSION"].map((k) => journeyStagePrompt(k)),
   ].join("\n");
 }
 
 /**
- * Renders the per-program context block (course promise + objections +
- * trust factors + search intents) so CBA and DGM copy stays on its own
- * course's psychology instead of leaking the other course's.
+ * Per-program behavioral context.
  */
 function programContextPrompt(programCode = "CBA") {
   const spec = PROGRAM_SPECS[programCode] || PROGRAM_SPECS.CBA;
   const intents = spec.searchIntents || SEARCH_INTENT_EXAMPLES;
   return [
-    `=== PROGRAM CONTEXT: ${spec.code} (${spec.label}) ===`,
+    `=== PROGRAM BEHAVIORAL CONTEXT: ${spec.code} (${spec.label}) ===`,
     `Domain: ${spec.domain}`,
-    `Core promise: ${spec.corePromise}`,
-    `Key outcomes: ${spec.keyOutcomes.join(", ")}`,
-    `Course-specific objections: ${(spec.commonObjections || []).slice(0, 8).join(" | ")}`,
-    `Course-specific trust factors: ${(spec.trustFactors || []).slice(0, 8).join(" | ")}`,
-    `Search intents: ${intents.google.slice(0, 5).join(" | ")}`,
-    `AI queries: ${intents.aiQueries.slice(0, 4).join(" | ")}`,
-    `Their own words: ${intents.redditQuoraVoice.slice(0, 5).join(" | ")}`,
-    `Platforms: ${(intents.platforms || []).slice(0, 8).join(", ")}`,
+    `Core Promise: ${spec.corePromise}`,
+    `Key Outcomes: ${spec.keyOutcomes.join(", ")}`,
+    `Course-Specific Objections: ${(spec.commonObjections || []).slice(0, 8).join(" | ")}`,
+    `Course-Specific Trust Factors: ${(spec.trustFactors || []).slice(0, 8).join(" | ")}`,
+    `Search Intent Patterns: ${intents.google.slice(0, 5).join(" | ")}`,
+    `AI Queries: ${intents.aiQueries.slice(0, 4).join(" | ")}`,
+    `User Voice: ${intents.redditQuoraVoice.slice(0, 5).join(" | ")}`,
   ].join("\n");
 }
 
 /**
- * Slim persona brief — the subset of journey intel the PERSONA agent needs
- * (offer context, transformation frame, pillars, hooks, objections, trust
- * factors, search intents). Deliberately excludes the 3-stage journey
- * counterparts (those belong to calendar/whatsapp/email prompts) so the
- * Groq fallback leg of the persona call stays under Groq's 8k TPM free-tier
- * limit. NVIDIA (1M ctx) can handle more, but keeping one shared brief
- * means both legs behave identically.
+ * Persona brief for personaAgent.
  */
 function buyerPersonaBriefBlock() {
   return [
-    "=== BUYER PERSONA BRIEF (Charters Union) ===",
-    `Course: ${OFFER_CONTEXT.courseName} | Price: ${OFFER_CONTEXT.price} | Duration: ${OFFER_CONTEXT.duration} | Region: ${OFFER_CONTEXT.region}`,
-    `Promised outcomes: ${OFFER_CONTEXT.promisedOutcomes.join(", ")}`,
-    `Transformation frame: FROM "${TRANSFORMATION_FRAME.before}" TO "${TRANSFORMATION_FRAME.after}"`,
+    "=== BUYER PERSONA BEHAVIORAL BRIEF ===",
+    `Audience: ${OFFER_CONTEXT.courseName}`,
+    `Transformation Frame: FROM "${TRANSFORMATION_FRAME.before}" TO "${TRANSFORMATION_FRAME.after}"`,
     "",
-    "Messaging pillars:",
+    "Messaging Pillars:",
     ...MESSAGING_PILLARS.map((p) => `  - ${p}`),
     "",
-    "Offer hooks (first 5):",
+    "Offer Hooks:",
     ...OFFER_HOOKS.slice(0, 5).map((h) => `  - ${h}`),
     "",
-    "Shared objections the persona holds:",
+    "Core Objections:",
     ...SHARED_OBJECTIONS.slice(0, 8).map((o) => `  - ${o}`),
     "",
-    "Trust factors the persona needs:",
+    "Required Trust Signals:",
     ...TRUST_FACTORS.slice(0, 8).map((t) => `  - ${t}`),
     "",
-    "Search intent examples:",
+    "Search & Voice Intent:",
     `  Google: ${SEARCH_INTENT_EXAMPLES.google.slice(0, 4).join(" | ")}`,
-    `  AI queries: ${SEARCH_INTENT_EXAMPLES.aiQueries.slice(0, 3).join(" | ")}`,
-    `  Their own words: ${SEARCH_INTENT_EXAMPLES.redditQuoraVoice.slice(0, 4).join(" | ")}`,
-    `  Platforms: ${SEARCH_INTENT_EXAMPLES.platforms.slice(0, 8).join(", ")}`,
+    `  AI Search: ${SEARCH_INTENT_EXAMPLES.aiQueries.slice(0, 3).join(" | ")}`,
+    `  User Voice: ${SEARCH_INTENT_EXAMPLES.redditQuoraVoice.slice(0, 4).join(" | ")}`,
   ].join("\n");
 }
 

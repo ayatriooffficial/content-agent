@@ -71,7 +71,7 @@ app.get("/", (req, res) => {
 });
 
 // ─── Start server + scheduler ─────────────────────────────────────────────────
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🌐 Server listening on port ${PORT}`);
   console.log(`📡 Health check: http://localhost:${PORT}/`);
   console.log(`📊 Dashboard API: http://localhost:${PORT}/api/dashboard/stats`);
@@ -79,3 +79,16 @@ app.listen(PORT, () => {
   // Start the autonomous scheduler
   startScheduler();
 });
+
+// ─── Graceful Shutdown (Releases Port on Ctrl+C) ──────────────────────────────
+function handleShutdown(signal) {
+  console.log(`\n🛑 Received ${signal}. Closing server on port ${PORT}...`);
+  server.close(() => {
+    console.log(`✅ Server on port ${PORT} closed cleanly.`);
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(0), 1500).unref();
+}
+
+process.on("SIGINT", () => handleShutdown("SIGINT"));
+process.on("SIGTERM", () => handleShutdown("SIGTERM"));

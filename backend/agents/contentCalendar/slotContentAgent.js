@@ -166,7 +166,7 @@ async function generateEmailForSlot(calendar, slot) {
     kind: "intro",
     name: calendar.campaignName || "Student",
     email: "",
-    course: slot.coreAngle || "",
+    course: slot.course || course || "CBA",
     viewerLevel: "NO_ACTIVITY",
     session: 1,
     question: null,
@@ -240,6 +240,11 @@ async function generateEmailForSlot(calendar, slot) {
     throw new Error(result?.error || "Root email generation failed");
   }
 
+  const slotNumMatch = String(slot.slotKey || "").match(/\d+/);
+  const slotNum = slotNumMatch ? parseInt(slotNumMatch[0], 10) : 1;
+  const dayNum = Math.floor((slotNum - 1) / 2) + 1;
+  const slotIndexInDay = ((slotNum - 1) % 2) + 1;
+
   const emailCampaign = new EmailCampaign({
     tag: result.email?.tag || "FOLLOWUP",
     subject: result.email?.subject || result.subject || slot.subjectLine,
@@ -259,6 +264,8 @@ async function generateEmailForSlot(calendar, slot) {
     status: "pending",
     calendarId: calendar.calendarId,
     slotKey: slot.slotKey,
+    day: dayNum,
+    slot: slotIndexInDay,
     course,
     pipelineRunId: calendar.pipelineRunId,
     createdAt: new Date(),

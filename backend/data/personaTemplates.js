@@ -381,7 +381,7 @@ const PERSONA_TEMPLATES = [
       education: "12th commerce or 1st/2nd year of college — still deciding a career, torn between safe (accounting) and exciting (marketing)",
       income: "Zero or small allowance — fully dependent on parents",
       familyPressure: "Parents see 'marketing' as vague; they'd rather he do something 'solid' like accounting or banking",
-      financialCondition: "Lower-middle to middle class — a ₹50,000 course needs family approval and a clear ROI story",
+      financialCondition: "Lower-middle to middle class — course investment needs family approval and a clear ROI story",
       influenceSystem: "YouTube creators, Instagram pages, WhatsApp groups, elder cousins working in agencies",
       livingEnvironment: "Phone-first life; consumes reels/shorts constantly; laptop only when he needs to 'actually do something'"
     },
@@ -424,7 +424,7 @@ const PERSONA_TEMPLATES = [
 
     buyingBehavior: {
       trustBuildingJourney: "Needs to see real students' campaign work, portfolios, and internship placements — not certificate photos.",
-      emotionalHesitation: "If I ask my parents for ₹50,000 for marketing and it doesn't work, they'll never trust my decisions again.",
+      emotionalHesitation: "If I ask my parents for course fees for marketing and it doesn't work, they'll never trust my decisions again.",
       researchBehavior: "Compares YouTube free-learning vs paid courses obsessively; reads every Google review; watches trial classes.",
       priceExpectation: "Low to moderate — heavy skepticism against free YouTube content.",
       purchaseBlockers: ["No portfolio", "Fear it's a trend/bubble", "Parental 'not a real career' objection", "Confusion from too many institutes"],
@@ -495,9 +495,9 @@ const PERSONA_TEMPLATES = [
 
     lifeSituation: {
       education: "Final-year or fresh B.Com/BA/BBA graduate — realizes the degree alone doesn't get hired",
-      income: "None or ₹1,000–₹3,000 from tuitions",
+      income: "None or occasional micro-income from tuitions",
       familyPressure: "Parents want 'a proper job' fast; relatives keep asking 'what are you doing now?'",
-      financialCondition: "Lower-middle to middle class — ₹40–50k investment needs family approval and an honest ROI case",
+      financialCondition: "Lower-middle to middle class — career program investment needs family approval and an honest ROI case",
       influenceSystem: "LinkedIn (observing), Instagram career pages, YouTube, peers getting internships, job portals",
       livingEnvironment: "Lives at home; spends hours on Naukri/LinkedIn getting zero callbacks; watches placed classmates' posts with envy"
     },
@@ -540,7 +540,7 @@ const PERSONA_TEMPLATES = [
 
     buyingBehavior: {
       trustBuildingJourney: "Deep research: reads every review, checks placement claims, attends trial class, asks past students on LinkedIn.",
-      emotionalHesitation: "If I ask my parents for ₹50k and it ends up theory-only, I lose their trust AND my chance.",
+      emotionalHesitation: "If I ask my parents for course fees and it ends up theory-only, I lose their trust AND my chance.",
       researchBehavior: "Compares institutes on portfolio quality, internship support, tools taught (Meta/Google/AI), placement records.",
       priceExpectation: "Moderate — willing to pay more for portfolio + internship + placement support.",
       purchaseBlockers: ["Fear of theory-heavy institutes", "Portfolio doubts", "Parent approval", "Comparing with free online courses"],

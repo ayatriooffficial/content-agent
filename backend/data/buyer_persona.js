@@ -13,7 +13,7 @@
  */
 
 const OFFER_CONTEXT = {
-  courseName: "Certified Business Accountant",
+  courseName: "Industry-Ready Career Programs",
   targetAudience: [
     "First-year college students",
     "Second-year college students",
@@ -22,17 +22,15 @@ const OFFER_CONTEXT = {
     "Unemployed graduates",
     "Early-career strugglers"
   ],
-  courseTopic: "Job readiness (practical accounting + English + interview skills)",
-  price: "₹35,000 – ₹50,000",
-  duration: "7 months",
+  courseTopic: "Job readiness (practical skills + English communication + interview mastery)",
   deliveryFormat: "In-class / on-campus / hybrid",
-  region: "Kolkata / Howrah / near Kolkata city",
+  region: "Pan-India & Global Internships across 7 Countries",
   promisedOutcomes: [
-    "Job placement",
-    "Job readiness",
-    "Jobs at global companies",
-    "Improved English speaking",
-    "Interview readiness",
+    "Job placement at top MNCs",
+    "Job readiness & practical simulations",
+    "Paid internships across 7 countries",
+    "Improved English speaking & corporate communication",
+    "Interview readiness & scoring",
     "Professional confidence",
     "Career growth"
   ]
@@ -69,7 +67,7 @@ const RIYA_SEN_PERSONA = {
   buyerVsUser: {
     user: "Riya — she is the one who will attend classes, use the skills, and apply for jobs.",
     economicApprover: "Her father (primary), with her mother and sometimes an elder sibling as secondary influencers.",
-    dynamic: "Riya self-identifies interest and does the research, but ₹50,000 requires collective family approval. She will likely bring her father to the demo/counselling session before committing.",
+    dynamic: "Riya self-identifies interest and does the research, but program fees require collective family approval. She will likely bring her father to the demo/counselling session before committing.",
     implication: "Marketing and sales must speak to Riya emotionally (identity, fear of falling behind) while equipping her with a parent-facing rational case (ROI, placement proof, EMI) she can carry home."
   },
 
@@ -91,9 +89,9 @@ const RIYA_SEN_PERSONA = {
   // ═══════════════════ LIFE SITUATION ═══════════════════
   lifeSituation: {
     education: "Final-year B.Com — strong theoretical grounding, zero hands-on workplace exposure",
-    income: "None, or ₹1,000–₹3,000/month from tuitions",
+    income: "None, or occasional micro-income from tuitions",
     familyPressure: "Parents expect placement soon after graduation; relatives ask \"What are you doing now?\"",
-    financialCondition: "Lower-middle to middle class; ₹50,000 is a significant but not impossible sum for the household",
+    financialCondition: "Lower-middle to middle class; career program fee is a significant but worthwhile investment for the household",
     influenceSystem: "College peers, LinkedIn (observes more than posts), YouTube career educators, WhatsApp/Telegram groups, family",
     livingEnvironment: "Lives at home with parents; balances final-semester academics with mounting job-search anxiety"
   },
@@ -210,12 +208,12 @@ const RIYA_SEN_PERSONA = {
 
   // ═══════════════════ J. AFFORDABILITY CONCERNS ═══════════════════
   affordabilityConcerns: {
-    perception: "₹50,000 is not impossible for the family, but it is significant and needs clear justification.",
-    emiExpectation: "EMI in the ₹5,000–₹8,000/month range feels manageable.",
+    perception: "The program investment is significant for the family and needs clear justification and proven ROI.",
+    emiExpectation: "Low monthly EMI options make enrollment accessible and stress-free.",
     familyPushback: "Parents may ask: \"Can't you learn this from YouTube instead?\"",
     approvalPath: "Father typically needs to be personally convinced — often via a demo/counselling session.",
-    roiNeed: "Needs a concrete ROI story: \"Students who completed this course earn ₹X within Y months.\"",
-    idealFraming: "Payment tied to placement guarantee would remove the biggest barrier; framed as \"pay now, secure internship support.\"",
+    roiNeed: "Needs a concrete ROI story: \"Students who completed this course achieve verified placements quickly.\"",
+    idealFraming: "Payment tied to placement support and in-class paid internships removes the biggest hesitation; framed as career investment.",
     comparisonPoint: "Parents compare the fee to college tuition or coaching-class costs.",
     financingNeeds: ["EMI", "Installment plan", "Scholarship/discount"],
     coreBeliefNeeded: "The course must be seen as a career shortcut/investment, not an expense or a gamble."
@@ -223,7 +221,7 @@ const RIYA_SEN_PERSONA = {
 
   // ═══════════════════ K. PURCHASE BARRIERS ═══════════════════
   purchaseBarriers: [
-    "₹50,000 feels like a big amount for the family even with support",
+    "Program fees feel like a major commitment for the family even with support",
     "Needs a clear, quick ROI to justify the spend",
     "Worries whether the course is genuinely \"worth it\"",
     "Fear it may be another theory-heavy institute, like college",
@@ -242,7 +240,7 @@ const RIYA_SEN_PERSONA = {
     ],
     evaluationCriteria: "Compares institutes primarily on verifiable placement proof and practical (not theoretical) curriculum; price matters but is secondary to trust and outcome certainty.",
     exactObjections: [
-      "Is ₹50,000 worth it? (fear of wasting family's money)",
+      "Is the program investment worth it? (fear of wasting family's money)",
       "Will I actually get placement help?",
       "How quickly can I expect to get a job after this course?",
       "Is this beginner-friendly?",
@@ -314,7 +312,7 @@ const RIYA_SEN_PERSONA = {
       "Delays a few days for reassurance",
       "Buys only after emotional reassurance + proof"
     ],
-    priceExpectation: "₹35,000–₹50,000 acceptable if ROI, placement proof, and EMI are clear",
+    priceExpectation: "Investment is acceptable if ROI, placement proof, and EMI are clear",
     urgencyTriggers: [
       "Graduation approaching",
       "A friend got placed",

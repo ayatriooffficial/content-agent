@@ -1,5 +1,6 @@
 const { generateBest } = require("./clients/providerRouter");
 const safeParseJSON = require("./jsonParser/jsonParser");
+const { getWebsiteContext } = require("../services/websiteContext");
 
 /**
  * Content Generation Agent — STEP 8 of the pipeline.
@@ -10,8 +11,16 @@ const safeParseJSON = require("./jsonParser/jsonParser");
 async function blogGeneratorAgent(blueprint, persona, research, competitor) {
   const course = blueprint.course || "CBA";
   const programSpec = blueprint.programSpec || {};
+
+  // Fetch LIVE website data from chartersunion.com
+  const website = await getWebsiteContext(course);
+  const websiteContextText = website?.context
+    ? `\n=== LIVE WEBSITE DATA (Charters Union) — PRIMARY FACTUAL SOURCE OF TRUTH ===\n${website.context}\n`
+    : "";
+
   const prompt = `You are a world-class content strategist for education in India (${course}: ${programSpec.label || programSpec.code || "career-focused program"}). Write a production-quality blog that deeply connects with the reader's psychology.
 
+${websiteContextText}
 === PROGRAM CONTEXT (${course}) ===
 Course promise: ${programSpec.corePromise || ""}
 Course outcomes: ${(programSpec.keyOutcomes || []).join(", ")}
@@ -59,16 +68,17 @@ WRITING RULES:
 2. EMPATHY FIRST: Open by validating their EXACT pain. Use live situations from the persona.
 3. PSYCHOLOGY-DRIVEN: Every section must connect to an emotional trigger or hidden fear.
 4. TRANSFORMATION: Guide from current pain to desired success with concrete steps.
-5. TRUST-BUILDING: Include specific examples, data points, and relatable scenarios.
+5. TRUST-BUILDING: Include specific examples, data points, and relatable scenarios from LIVE WEBSITE DATA.
 6. NO CLICHÉS: Never use "In today's fast-paced world", "Unleash", "Dive deep", "Ultimate guide". Write like a mentor talking to the reader.
 7. ${course === "DGM" ? "MARKETING CONTEXT: All examples and advice must be specific to digital marketing / growth / performance careers." : "ACCOUNTING CONTEXT: All examples, scenarios, and advice must be specific to accounting/finance/commerce careers."}
 8. AI-SEARCH FRIENDLY: Naturally answer the AI search queries within the text.
-9. READABILITY: Short paragraphs, bullet points, bold text for emphasis.
+9. READABILITY & BOLD HIGHLIGHTS: Use short paragraphs, bullet points, and **bold text** to highlight every important tool, metric, and USP (e.g. **AI Career Engine**, **SAP S/4HANA**, **7 Countries Paid Internship**).
 10. COMPETITOR DIFFERENTIATION: Address the emotional gaps competitors miss.
-11. NO LOCATIONS: DO NOT mention the city name (e.g., Kolkata, Lucknow) or target state in the content. Keep it universally applicable.
+11. NO LOCATIONS: DO NOT mention city or target state in the general advice; keep it universally applicable.
 12. FEAR-OF-INACTION REALISM: In one section, honestly show the cost of doing nothing (stagnation, missed opportunities, salary gap) — without doom-scrolling or fake urgency.
-13. ANSWER REAL OBJECTIONS: Address the persona's exact objections inside the content (e.g. "will this really get me a job?", "is it worth the money?") rather than ignoring them.
-14. GROUND TRUST: Weave in the trust factors the persona needs (placement proof, practical curriculum, mentor credibility) naturally — never as a bulleted ad.
+13. ANSWER REAL OBJECTIONS: Address the persona's exact objections inside the content rather than ignoring them.
+14. GROUND TRUST: Weave in verified outcomes and recruiters from the LIVE WEBSITE DATA only.
+15. COMPARISON TABLE: The blog MUST include at least one clean Markdown comparison table (e.g. Theory vs. Practice, or Traditional Degree vs. Industry Simulation) with 3-5 rows.
 
 Respond in this EXACT format (first a JSON metadata block, then the markdown content):
 
@@ -87,7 +97,7 @@ Respond in this EXACT format (first a JSON metadata block, then the markdown con
 
 [BEGIN_CONTENT]
 # Your Blog Title Here
-(Full blog content. ${blueprint.wordCount || 1000} words minimum. Accounting/finance focused. Deeply emotional and practical.)
+(Full blog content with Markdown comparison table. ${blueprint.wordCount || 1000} words minimum. Deeply emotional and practical.)
 [END_CONTENT]`;
 
   let raw = "";

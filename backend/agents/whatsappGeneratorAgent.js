@@ -51,19 +51,21 @@ ${journeyStagePrompt(stage)}`;
 async function whatsappGeneratorAgent(blueprint, persona, research, competitor, blogResult, context = {}) {
   const blogTitle = blogResult?.title || blueprint.blogTitle || "";
   const course = context.course || blueprint.course || "CBA";
+  const websiteDomain = process.env.NEXT_PUBLIC_SITE_URL || "https://chartersunion.com";
+  const helplinePhone = "+91 80694 09700";
 
   // Fetch LIVE website data so the message revolves around the real offers
   const { getWebsiteContext } = require("../services/websiteContext");
-  const website = await getWebsiteContext();
+  const website = await getWebsiteContext(course);
   const websiteContextText = website?.context
     ? `\n=== LIVE WEBSITE DATA (Charters Union) — PRIMARY SOURCE OF TRUTH ===\n${website.context}\n`
     : "";
 
   const programBlock = context.programSpec ? programContextPrompt(course) : "";
 
-  const systemPrompt = `You are a senior WhatsApp campaign strategist for CHARTES UNION OF BUSINESS — an industry-led business education brand offering CBA™ (Certified Business Accountant), DGM™ (Digital Growth & Marketing), and TBM™ (Technology & Business Management).
+  const systemPrompt = `You are a senior WhatsApp campaign strategist for CHARTERS UNION — an industry-led business education brand offering CBA™ (Certified Business Accountant), DGM™ (Digital Growth & Marketing), and TBM™ (Technology & Business Management).
 
-You write the way top D2C education brands (upGrad, Great Learning, MasterUnion) do: human, specific, outcome-driven, never corporate-bland, never templated.
+You write the way top D2C education brands (upGrad, Great Learning, Masters' Union) do: human, specific, outcome-driven, never corporate-bland, never templated.
 
 ${websiteContextText}
 CRITICAL RULES:
@@ -117,20 +119,23 @@ Blind Spots: ${joinList(competitor.competitorBlindSpots)}
 *** MANDATORY: THE APPROVED HOOK BELOW IS LAW ***
 Approved Hook (USE VERBATIM as the headline — do NOT invent a different topic): ${context.suggestedHook || ""}
 CTA Goal: ${context.ctaGoal || ""}
-Core Angle: ${context.coreAngle || ""}
-Audience Category: ${context.audienceCategory || persona.buyerPersona || "Accounting audience"}
-CTA URL Path: ${context.ctaUrlPath || "/blogs"}
-Course: ${course}
+PIPELINE CONTEXT:
+Persona: ${persona?.audienceCategory || "Accounting/Marketing Student/Graduate"} (Identity: ${persona?.identityBelief || ""})
+Audience Pain (their words): ${joinList(persona?.painPoints, "Feeling unprepared for real corporate jobs")}
+Hidden Insecurity: ${persona?.voiceOfCustomer?.hiddenInsecurity || persona?.psychologyLayer?.fearOfFailure || "Fear of failing interviews"}
+Urgent Trigger: ${joinList(persona?.urgentTriggers, "Approaching graduation with zero interview callbacks")}
+Real Student Voices (from research): ${normalizeList(research?.studentPainQuotes, 4).join("; ") || "Looking for practical skills that get hired"}
+Approved Hook (MUST use as inspiration/headline): "${context.approvedHook || blueprint.coreAngle || ""}"
+${blogTitle ? `Related Blog Angle: "${blogTitle}"` : ""}
 
-CRITICAL FORMATTING REQUIREMENT (Native WhatsApp Message Format):
-WhatsApp does NOT support HTML tags (like <u> or <ins>) and does NOT support Markdown headers (# or ##).
-Use only native WhatsApp formatting styles:
-- Bold: *text* (used for headings, names, metrics, key phrases)
-- Italics: _text_ (used for closing questions, tone, and emphasis)
-- Strikethrough: ~text~ (for comparisons/cross-outs)
-- Monospace: \`\`\`text\`\`\`
-- Block Quote: > text (for quote blocks and pain points)
-- Bullet List: • *Topic:* description (or * / -)
+WHATSAPP FORMATTING RULES (MANDATORY):
+- Use WhatsApp formatting syntax ONLY:
+  - Bold: *text* (for headings, key concepts, numbers, and CTAs)
+  - Italics: _text_ (for emphasis, questions, and tone)
+  - Strikethrough: ~text~ (for comparisons/cross-outs)
+  - Monospace: \`\`\`text\`\`\`
+  - Block Quote: > text (for quote blocks and pain points)
+  - Bullet List: • *Topic:* description (or * / -)
 
 The "whatsappMessage" field MUST follow this exact visual layout:
 1. Header Greeting: "*{NAME} ji,*" (or "*{NAME},*")
@@ -140,9 +145,9 @@ The "whatsappMessage" field MUST follow this exact visual layout:
 5. 3 Bullet Points: Each bullet must start with "• *Feature/Skill:* Description and real metrics."
 6. Closing Question in Italics: "_Would you like to check your AI Career-Readiness Score this week?_"
 7. Visit Footer:
-🌐 *Visit:* chartersunion.com
-📝 *Apply:* chartersunion.com/apply
-📞 *Call:* +91 9836465083
+🌐 *Visit:* ${websiteDomain}
+📝 *Apply:* ${websiteDomain}/apply
+📞 *Call:* ${helplinePhone}
 
 Output EXACTLY this JSON structure:
 {
