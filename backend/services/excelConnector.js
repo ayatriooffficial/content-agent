@@ -86,6 +86,9 @@ function buildEmailContent(email) {
  * Renders WhatsApp content from the WhatsAppCampaign doc.
  */
 function buildWhatsAppContent(wa) {
+  if (wa.whatsappMessage && typeof wa.whatsappMessage === "string" && wa.whatsappMessage.trim()) {
+    return wa.whatsappMessage.trim();
+  }
   const parts = [];
   if (wa.headline) parts.push(wa.headline);
   if (wa.opening) parts.push(wa.opening);

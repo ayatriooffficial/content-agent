@@ -52,7 +52,7 @@ async function whatsappGeneratorAgent(blueprint, persona, research, competitor, 
   const blogTitle = blogResult?.title || blueprint.blogTitle || "";
   const course = context.course || blueprint.course || "CBA";
   const websiteDomain = process.env.NEXT_PUBLIC_SITE_URL || "https://chartersunion.com";
-  const helplinePhone = "+91 80694 09700";
+  const helplinePhone = "+91 9836465083";
 
   // Fetch LIVE website data so the message revolves around the real offers
   const { getWebsiteContext } = require("../services/websiteContext");
@@ -70,14 +70,14 @@ You write the way top D2C education brands (upGrad, Great Learning, Masters' Uni
 ${websiteContextText}
 CRITICAL RULES:
 - Output ONLY valid JSON. No markdown, no prose, no code fences.
-- Keep the message concise, conversational, and mobile-friendly (under 180 words).
+- Keep the message concise, conversational, and mobile-friendly (under 160 words).
 - Ground EVERY claim in the LIVE WEBSITE DATA above. NEVER invent programs, fees, stats, placements, or faculty.
 - Use the persona's real research voice (Quora/Reddit/Google phrases) — the message must sound like it was written for ONE person, not a broadcast.
 - Do NOT mention city/state names in the message body.
 - The message MUST follow the stage framework below. NEVER mix stages.
 - Write for the ${course} course ONLY: ${programBlock ? "use its program context (promise, objections, trust factors) for the topic; never reference the other course's concerns." : ""}`;
 
-  const userPrompt = `Write ONE WhatsApp campaign message for Charters Union of Business promoting its real programs (CBA/DGM/TBM) to this specific audience.
+  const userPrompt = `Write ONE WhatsApp campaign message for Charters Union promoting its real programs (CBA/DGM/TBM) to this specific audience.
 
 ${stageFramework(context.funnelStage, context.objective, context.slotKey)}
 
@@ -140,14 +140,12 @@ WHATSAPP FORMATTING RULES (MANDATORY):
 The "whatsappMessage" field MUST follow this exact visual layout:
 1. Header Greeting: "*{NAME} ji,*" (or "*{NAME},*")
 2. Pain Point Quote Block: A short 2 to 2.5 line quote block using "> " syntax describing the exact practical skills conflict.
-3. Bridge Line: "At Charters Union, we help you bridge the degree-to-corporate gap with zero friction:"
+3. Bridge Line: "At Charters Union, we bridge the degree-to-corporate gap with zero friction:"
 4. Bold Section Heading: "*Why Top Recruiters Hire ${course}™ Graduates:*" (DO NOT use <u> or # headings — use *Bold* formatting)
 5. 3 Bullet Points: Each bullet must start with "• *Feature/Skill:* Description and real metrics."
 6. Closing Question in Italics: "_Would you like to check your AI Career-Readiness Score this week?_"
-7. Visit Footer:
-🌐 *Visit:* ${websiteDomain}
-📝 *Apply:* ${websiteDomain}/apply
-📞 *Call:* ${helplinePhone}
+7. Single-Line Footer:
+🌐 *Visit:* ${websiteDomain} | 📝 *Apply:* ${websiteDomain}/apply | 📞 *Call:* ${helplinePhone}
 
 Output EXACTLY this JSON structure:
 {
@@ -175,16 +173,14 @@ Output EXACTLY this JSON structure:
     console.log(`  [WhatsApp Generator Agent] Generating campaign copy for slot ${context.slotKey || "?"} (stage: ${context.funnelStage || "?"})...`);
     raw = await generateBest(systemPrompt, userPrompt, {
       temperature: 0.7,
-      maxTokens: 3500,
+      maxTokens: 1024,
       json: true,
       caller: `WhatsApp slot ${context.slotKey || "?"}`,
-      // WhatsApp chain: OpenRouter → NVIDIA → Groq → OpenRouter-Nemotron → NVIDIA-GptOss → Gemini-3.5-Flash-Lite → Gemini-3.1-Flash-Lite
-      order: ["OpenRouter", "NVIDIA", "Groq", "OpenRouter-Nemotron", "NVIDIA-GptOss", "Gemini-3.5-Flash-Lite", "Gemini-3.1-Flash-Lite"],
-      openRouterModel: "google/gemma-4-31b-it:free",
-      openRouterNemotronModel: "nvidia/nemotron-3-ultra-550b-a55b:free",
-      nvidiaModel: "minimaxai/minimax-m3",
-      nvidiaGptOssModel: "openai/gpt-oss-120b",
+      // Priority chain: Gemini (instant 2s, 1M context) → Groq → NVIDIA → OpenRouter
+      order: ["Gemini-3.5-Flash-Lite", "Gemini-3.1-Flash-Lite", "Groq", "NVIDIA", "OpenRouter"],
       groqModel: "openai/gpt-oss-120b",
+      nvidiaModel: "minimaxai/minimax-m3",
+      openRouterModel: "google/gemma-4-31b-it:free",
     });
     console.log(`  [WhatsApp Generator Agent] ✅ Raw output received for slot ${context.slotKey || "?"} (${raw.split(" ").length} tokens) — parsing JSON...`);
   } catch (err) {
