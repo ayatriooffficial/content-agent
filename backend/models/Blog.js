@@ -126,9 +126,13 @@ const blogSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
-    emotionalHook: {
-      type: String,
-      default: "",
+    dayOffset: {
+      type: Number,
+      default: 1,
+    },
+    releaseDate: {
+      type: Date,
+      default: Date.now,
     },
     createdAt: {
       type: Date,

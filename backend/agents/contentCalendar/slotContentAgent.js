@@ -100,6 +100,10 @@ async function generateBlogForSlot(calendar, slot) {
   const validationResult = await validationAgent(blogResult, slotBlueprint, persona, research, competitor);
   const readingTime = Math.max(1, Math.ceil((blogResult.wordCount || 0) / 200));
 
+  const calendarCreatedAt = calendar.createdAt ? new Date(calendar.createdAt) : new Date();
+  const dayOffsetDays = Math.max(0, (slot.dayOffset || 1) - 1);
+  const scheduledReleaseDate = new Date(calendarCreatedAt.getTime() + dayOffsetDays * 24 * 60 * 60 * 1000);
+
   const blog = new Blog({
     title: blogResult.title,
     content: blogResult.content,
@@ -123,6 +127,8 @@ async function generateBlogForSlot(calendar, slot) {
     pipelineRunId: calendar.pipelineRunId,
     calendarId: calendar.calendarId,
     slotKey: slot.slotKey,
+    dayOffset: slot.dayOffset || 1,
+    releaseDate: scheduledReleaseDate,
     course,
     seoKeywords: slotBlueprint.targetKeywords || [],
     emotionalHook: ctx.blueprint.emotionalHook || "",
