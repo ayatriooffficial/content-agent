@@ -15,6 +15,8 @@ const PORT = process.env.PORT || 5000;
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,
+  "https://chartersbusiness-admin.vercel.app",
+  "https://chartersunion.com",
   "http://localhost:3000",
   "http://localhost:3001",
   "http://localhost:3002",
@@ -22,15 +24,13 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:4000",
   "https://hello0123.netlify.app"
-];
+].filter(Boolean);
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
+    if (allowedOrigins.includes(origin) || origin.endsWith(".vercel.app") || origin.endsWith(".onrender.com")) {
+      return callback(null, true);
     }
     return callback(null, true);
   },
