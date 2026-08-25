@@ -18,7 +18,7 @@
  */
 
 const OFFER_CONTEXT = {
-  brand: "Charters Union of Business",
+  brand: "Charters Union",
   courseName: "Industry-Led Career Programs (CBA™ / DGM™ / TBM™)",
   targetAudience: [
     "First-year college students",
@@ -136,7 +136,7 @@ const OFFER_HOOKS = [
   "From uncertain graduate to placed corporate professional.",
   "What genuine industry simulation returns: a career, not just a certificate.",
   "The step-by-step roadmap from college theory to corporate hiring.",
-  "Employers aren't asking for your marksheet. They're asking for practical capability.",
+  "Move from textbook theory to live practical software and enterprise workflows.",
   "The placement guarantee question, answered honestly with verified data.",
   "Job-ready skills + English fluency + interview scoring — in one unified program.",
   "Because 'I will figure it out after graduation' is no longer a viable strategy.",

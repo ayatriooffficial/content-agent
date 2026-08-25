@@ -118,36 +118,30 @@ function buildStageObjectives(baseObjectives) {
 const STAGE_OBJECTIVES = {
   EMAIL: buildStageObjectives({
     "1_AWARENESS": [
-      "Introduce the career problem/opportunity — pure education, NO enrollment push",
-      "Surface the industry reality & why the audience should care (awareness only)",
-      "Educate on what the program is and why it matters — informational tone"
+      "Morning Focus (Slot 1): The Macro Perspective & Industry Shift — educate on the real-world career challenge, why traditional degrees fall short, pure informational value with ZERO enrollment push.",
+      "Evening Focus (Slot 2): The Actionable Skill Breakdown — concrete competencies modern top recruiters expect, practical case-study importance, informational awareness tone without hard selling."
     ],
     "2_ENGAGEMENT": [
-      "Deliver proof: placement outcomes, faculty, ROI — invite a reply/question",
-      "Share stats, bullets, testimonials — deepen interest and invite interaction",
-      "Ask a question / CTA to reply for more details (engagement focus)"
+      "Morning Focus (Slot 1): Curriculum & Mentorship Architecture — practical live case study model, corporate mentors, comparison table with conventional programs.",
+      "Evening Focus (Slot 2): Concrete Outcomes & Recruiter Proof — verified placement stats, hiring partners (KPMG, PwC, EY, Deloitte), salary benchmarks, soft invitation to reply or ask a question."
     ],
     "3_CONVERSION": [
-      "Drive action: upcoming batch, deadlines, seats filling — clear apply CTA",
-      "Fees/EMI/scholarship + apply link + soft urgency (no fake scarcity)",
-      "Final call to apply or talk to a counselor — conversion focus"
+      "Morning Focus (Slot 1): Transparent Admission Roadmap & Financial Support — upcoming batch start dates, scholarship evaluation, EMI affordability details.",
+      "Evening Focus (Slot 2): Final Action & Counselor Consultation — direct application steps, upcoming batch seat allocation, booking an admissions advisory session."
     ]
   }),
   WHATSAPP: buildStageObjectives({
     "1_AWARENESS": [
-      "Short punchy hook about the career problem — educate, no hard sell",
-      "'Did you know?' observation that builds awareness of the opportunity",
-      "Myth vs reality quick comparison — informational, awareness only"
+      "Morning Focus (Slot 1): Short punchy hook about the macro career dilemma — educate, no hard sell.",
+      "Evening Focus (Slot 2): Practical skill checklist observation that builds concrete awareness of modern requirements."
     ],
     "2_ENGAGEMENT": [
-      "Micro-insight with proof (placement/faculty/ROI) — invite a reply",
-      "Actionable 3-bullet cheatsheet + question to engage",
-      "Community insight + quick-reply poll question (engagement focus)"
+      "Morning Focus (Slot 1): Micro-insight with curriculum & case-study proof — invite an interactive reply.",
+      "Evening Focus (Slot 2): Actionable recruiter benchmark & placement outcome data point + quick engagement question."
     ],
     "3_CONVERSION": [
-      "Urgent but honest CTA: batch deadline, seats filling — 'Apply now'",
-      "Direct 'talk to a counselor' / apply link push (conversion focus)",
-      "Final call with clear next step — no fake urgency"
+      "Morning Focus (Slot 1): Upcoming batch start date, scholarship & EMI breakdown with clear next step.",
+      "Evening Focus (Slot 2): Final call for application & counselor consultation — transparent and helpful."
     ]
   })
 };
