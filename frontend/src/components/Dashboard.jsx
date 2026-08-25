@@ -78,9 +78,11 @@ export default function Dashboard() {
   }, [stats]);
 
   function getApiBase() {
-    if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
+    if (import.meta.env.VITE_API_BASE_URL) {
+      return String(import.meta.env.VITE_API_BASE_URL).trim().replace(/\/+$/, "");
+    }
     const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-    return isLocal ? "http://localhost:5000" : "https://blog-automation-1-afvy.onrender.com";
+    return isLocal ? "http://localhost:5003" : "https://content-agent-u1on.onrender.com";
   }
 
   async function handleTrigger() {
