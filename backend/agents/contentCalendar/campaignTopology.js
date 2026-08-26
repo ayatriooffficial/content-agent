@@ -132,16 +132,16 @@ const STAGE_OBJECTIVES = {
   }),
   WHATSAPP: buildStageObjectives({
     "1_AWARENESS": [
-      "Morning Focus (Slot 1): Short punchy hook about the macro career dilemma — educate, no hard sell.",
-      "Evening Focus (Slot 2): Practical skill checklist observation that builds concrete awareness of modern requirements."
+      "Morning Focus (Slot 1): 1:1 Tool Diagnostic & Career Roadmap — conversational check-in on practical tool baseline from live program data, link to /career-path, ZERO hard selling.",
+      "Evening Focus (Slot 2): Day-in-the-Life & Practical Weekly Structure — hands-on practical lab simulation vs passive lectures from live program format, invite 'Reply WEEK'."
     ],
     "2_ENGAGEMENT": [
-      "Morning Focus (Slot 1): Micro-insight with curriculum & case-study proof — invite an interactive reply.",
-      "Evening Focus (Slot 2): Actionable recruiter benchmark & placement outcome data point + quick engagement question."
+      "Morning Focus (Slot 1): Single Verified Proof Byte & Recruiter Outcomes — audited placement metrics and hiring partners from live data, invite 'Reply PROOF'.",
+      "Evening Focus (Slot 2): 1:1 Practicing Industry Mentor Access — mock interviews and executive coaching from live faculty data, invite 'Reply CALL'."
     ],
     "3_CONVERSION": [
-      "Morning Focus (Slot 1): Upcoming batch start date, scholarship & EMI breakdown with clear next step.",
-      "Evening Focus (Slot 2): Final call for application & counselor consultation — transparent and helpful."
+      "Morning Focus (Slot 1): Plain-Language Logistics, Batch Schedule & Flexible EMI — upcoming start dates, schedule flexibility, and starting EMI from live fee data, invite 'Reply ELIGIBLE'.",
+      "Evening Focus (Slot 2): Round 1 Fast-Track Seat Allocation Notice — 3-step evaluation and transparent seat reservation link."
     ]
   })
 };

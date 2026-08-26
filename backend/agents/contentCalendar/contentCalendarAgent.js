@@ -148,24 +148,55 @@ function buildDefaultOptionSet(type, seedData = {}, slotKey = "", dayOffset = 0)
     ];
   }
 
+  const isDGM = String(slotKey).includes("dgm");
+  const stage = dayOffset === 0 ? "1_AWARENESS" : dayOffset === 1 ? "2_ENGAGEMENT" : "3_CONVERSION";
+
+  let waHookA = hookA;
+  let waHookB = hookB;
+  let waHookC = hookC;
+
+  if (stage === "1_AWARENESS") {
+    waHookA = isDGM
+      ? "Most marketing graduates know theory, but freeze on live Meta ad scaling and GA4 tracking."
+      : "Most commerce graduates passed degree exams with top marks, but freeze on live SAP S/4HANA closing.";
+    waHookB = isDGM
+      ? "Quick look at how a typical week runs for our DGM cohort: Mon–Thu live ad optimization, Friday client pitch deck coaching."
+      : "Quick look at how a typical week runs for our CBA cohort: Mon–Thu live balance sheet labs, Friday boardroom English polish.";
+    waHookC = isDGM
+      ? "Why top growth agencies hire for live tool execution over textbook marketing degrees."
+      : "Why Big 4 firms test practical ERP closing instead of college degree marks.";
+  } else if (stage === "2_ENGAGEMENT") {
+    waHookA = isDGM
+      ? "Audited outcome update: 95% placement rate with direct hires at Google, Amazon, Flipkart, and GrowthX."
+      : "Audited outcome update: 92% placement rate with direct campus hires at KPMG, PwC, EY, and Deloitte.";
+    waHookB = isDGM
+      ? "Every student in our DGM cohort receives 1:1 weekly campaign teardowns from active Growth Heads."
+      : "Every student in our CBA cohort is paired with an active CA/CMA industry partner for 1:1 interview prep.";
+    waHookC = "Have 10 mins tomorrow for a quick career mapping chat with an admissions mentor?";
+  } else {
+    waHookA = `Upcoming ${isDGM ? "DGM" : "CBA"} batch: Round 1 cohort starts next month with No-Cost EMI starting from ₹5,555/month.`;
+    waHookB = `Final notice: Round 1 priority allocations for the upcoming ${isDGM ? "DGM" : "CBA"} cohort close this week.`;
+    waHookC = `3-step evaluation to reserve your seat: 1. Online Application ➔ 2. AI Aptitude Test ➔ 3. 1:1 Mentor Interview.`;
+  }
+
   return [
     {
       style: "standard",
-      whatsappHook: base.whatsappHook || hookA,
-      gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? base.gapKeywords : ["career growth", "quick win"],
-      ctaGoal: base.ctaGoal || "spark a reply and drive a simple next step"
+      whatsappHook: base.whatsappHook || waHookA,
+      gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? base.gapKeywords : ["practical tools", "career roadmap"],
+      ctaGoal: base.ctaGoal || "explore the live tool roadmap at chartersunion.com/career-path"
     },
     {
       style: "creative",
-      whatsappHook: hookB,
-      gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? rotate(base.gapKeywords, 1) : ["career stories", "thought leadership"],
-      ctaGoal: "keep the conversation moving with a light, curiosity-driven CTA"
+      whatsappHook: waHookB,
+      gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? rotate(base.gapKeywords, 1) : ["weekly schedule", "live labs"],
+      ctaGoal: "invite interactive reply for schedule or mentor chat"
     },
     {
       style: "urgency",
-      whatsappHook: hookC,
-      gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? rotate(base.gapKeywords, 2) : ["social proof", "lead response"],
-      ctaGoal: "create urgency and encourage an immediate reply"
+      whatsappHook: waHookC,
+      gapKeywords: Array.isArray(base.gapKeywords) && base.gapKeywords.length ? rotate(base.gapKeywords, 2) : ["verified proof", "seat allocation"],
+      ctaGoal: "encourage direct application or scholarship check"
     }
   ];
 }

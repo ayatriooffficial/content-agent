@@ -39,6 +39,25 @@ router.get("/whatsapp", async (req, res) => {
     if (req.query.status) query.status = req.query.status;
 
     const messages = await WhatsAppCampaign.find(query).sort({ createdAt: -1 });
+
+    // Background sync of approved/published messages to Google Sheets
+    if (!req.query.status || req.query.status === "published" || req.query.status === "approved") {
+      (async () => {
+        try {
+          const published = messages.filter((m) => m.status === "approved" || m.status === "published");
+          for (const pub of published) {
+            let calendar = null;
+            if (pub.calendarId) {
+              calendar = pub.calendarId.startsWith("CAL_")
+                ? await ContentCalendar.findOne({ calendarId: pub.calendarId })
+                : await ContentCalendar.findById(pub.calendarId);
+            }
+            await writeWhatsAppCampaign(pub, calendar);
+          }
+        } catch (_) {}
+      })();
+    }
+
     return res.status(200).json({ success: true, whatsapp: messages.map(normalizeWhatsApp) });
   } catch (error) {
     return res.status(500).json({ error: "Could not fetch WhatsApp campaigns." });
@@ -56,7 +75,7 @@ router.get("/whatsapp/:id", async (req, res) => {
   }
 });
 
-// ─── PATCH /whatsapp/:id/status ──
+// ─── PATCH /whatsapp/:id ──
 router.patch("/whatsapp/:id", async (req, res) => {
   try {
     const updates = req.body || {};
@@ -69,6 +88,19 @@ router.patch("/whatsapp/:id", async (req, res) => {
 
     const message = await WhatsAppCampaign.findByIdAndUpdate(req.params.id, cleaned, { new: true });
     if (!message) return res.status(404).json({ error: "WhatsApp campaign not found" });
+
+    if (message.status === "approved" || message.status === "published") {
+      try {
+        let calendar = null;
+        if (message.calendarId) {
+          calendar = message.calendarId.startsWith("CAL_")
+            ? await ContentCalendar.findOne({ calendarId: message.calendarId })
+            : await ContentCalendar.findById(message.calendarId);
+        }
+        await writeWhatsAppCampaign(message, calendar);
+      } catch (_) {}
+    }
+
     return res.status(200).json({ success: true, whatsapp: normalizeWhatsApp(message) });
   } catch (error) {
     return res.status(500).json({ error: "Failed to update WhatsApp campaign content." });

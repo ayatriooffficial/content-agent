@@ -83,22 +83,93 @@ function buildEmailContent(email) {
 }
 
 /**
+ * Resolves the slot number for a campaign slot.
+ * Prefers the calendar slot metadata, else parses it from the slotKey
+ * (wa_2, email_2_dgm, wa_1_cba → 2, 2, 1). Falls back to 1.
+ */
+function resolveSlotNumber(slotKey, slotInfo) {
+  if (slotInfo && slotInfo.slot) return Number(slotInfo.slot);
+  const m = String(slotKey || "").match(/_(\d+)$/);
+  if (m) return Number(m[1]) || 1;
+  return 1;
+}
+
+/**
+ * Normalizes a baked-in real first name on the greeting line to the
+ * {name} placeholder, preserving WhatsApp line breaks: the greeting sits
+ * on its own line, followed by one blank line, then the body.
+ */
+function normalizeWhatsAppGreeting(content) {
+  const lines = String(content || "").split(/\r?\n/);
+  const first = (lines[0] || "").trim();
+
+  // Already a placeholder — leave untouched.
+  if (/\{\s*name\s*\}/i.test(first)) return content;
+
+  let greeting = null;
+  let inlineRest = "";
+
+  // 1) "Hi Anirban," / "Hello Suman!" / "Hey *Om*," (optionally followed
+  //    by body text on the same line).
+  const greet = first.match(/^(\*?)(?:Hi|Hello|Hey)\s+\*?[A-Za-z][\w.'-]*\*?\s*[,!]?[ \t]*(.*)$/i);
+  if (greet) {
+    const star = greet[1] || "";
+    greeting = `${star}{name}${star ? "*" : ""},`;
+    inlineRest = (greet[2] || "").trim();
+  } else if (/^(\*?)[A-Za-z][\w.'-]*\*?[ \t]*[,!][ \t]*\*?$/.test(first)) {
+    // 2) Bare name greeting: "*Anirban,*" / "Anirban," / "Suman!"
+    const star = /^\*/.test(first) ? "*" : "";
+    greeting = `${star}{name}${star ? "*" : ""},`;
+  }
+
+  if (!greeting) return content;
+
+  const restLines = lines.slice(1);
+  while (restLines.length && restLines[0].trim() === "") restLines.shift();
+
+  const rebuilt = [greeting];
+  if (inlineRest) {
+    rebuilt.push("", inlineRest, ...restLines);
+  } else if (restLines.length) {
+    rebuilt.push("", ...restLines);
+  }
+  return rebuilt.join("\n");
+}
+
+/**
  * Renders WhatsApp content from the WhatsAppCampaign doc.
+ * Normalizes a baked-in real first name in the greeting line to the
+ * {name} placeholder so every lead receives their own name.
  */
 function buildWhatsAppContent(wa) {
+  let content = "";
   if (wa.whatsappMessage && typeof wa.whatsappMessage === "string" && wa.whatsappMessage.trim()) {
-    return wa.whatsappMessage.trim();
+    content = wa.whatsappMessage.trim();
+  } else {
+    const parts = [];
+    if (wa.headline) parts.push(wa.headline);
+    if (wa.intro) parts.push(wa.intro);
+    if (wa.opening) parts.push(wa.opening);
+    if (wa.body) parts.push(wa.body);
+    // PROBLEM HEADING: dynamic per-slot heading naming the pain (never "Problem is this").
+    if (wa.problemHeading) parts.push(wa.problemHeading);
+    if (Array.isArray(wa.bulletPoints) && wa.bulletPoints.length) {
+      parts.push(wa.pointsHeading ? wa.pointsHeading : "");
+      parts.push(wa.bulletPoints.map((b) => `• ${b}`).join("\n"));
+    }
+    // SOLUTION HEADING: dynamic bold heading before the solution line.
+    if (wa.solutionHeading) parts.push(wa.solutionHeading);
+    if (wa.solution) parts.push(wa.solution);
+    if (wa.ctaText) parts.push(`${wa.ctaText}${wa.ctaUrlPath ? ` — ${wa.ctaUrlPath}` : ""}`);
+    if (wa.closing) parts.push(wa.closing);
+    content = parts.filter(Boolean).join("\n\n");
   }
-  const parts = [];
-  if (wa.headline) parts.push(wa.headline);
-  if (wa.opening) parts.push(wa.opening);
-  if (wa.body) parts.push(wa.body);
-  if (Array.isArray(wa.bulletPoints) && wa.bulletPoints.length) {
-    parts.push(wa.bulletPoints.map((b) => `• ${b}`).join("\n"));
-  }
-  if (wa.ctaText) parts.push(`${wa.ctaText}${wa.ctaUrlPath ? ` — ${wa.ctaUrlPath}` : ""}`);
-  if (wa.closing) parts.push(wa.closing);
-  return parts.filter(Boolean).join("\n\n");
+
+  // Deterministic keyword bolding + grammar guard (same as the generator).
+  const { boldWhatsAppKeywords, normalizeGrammar } = require("../agents/whatsappGeneratorAgent");
+  content = boldWhatsAppKeywords(normalizeGrammar(content));
+
+  return normalizeWhatsAppGreeting(content);
 }
 
 /**
@@ -111,44 +182,48 @@ async function writeWhatsAppCampaign(wa, calendar) {
   try {
     const sheet = await ensureTab("Messages", WHATSAPP_HEADERS);
 
-    // Dedupe: skip if this calendarId+slotKey already exists
-    const rows = await sheet.getRows();
-    const dup = rows.some(
-      (r) =>
-        String(r.get("Time") || "").includes(`${wa.calendarId}::${wa.slotKey}`) ||
-        (r._rawData && r._rawData.join("|").includes(`${wa.calendarId}::${wa.slotKey}`))
-    );
-    if (dup) {
-      console.log(`   ⏭️  WhatsApp campaign ${wa.slotKey} already in Excel — skip`);
-      return { written: false, reason: "duplicate" };
-    }
-
     const slotInfo = findSlotInfo(calendar, "whatsapp", wa.slotKey);
     const day = slotInfo?.scheduledDay || 1;
-    const slot = slotInfo?.slot || 1;
+    const slot = resolveSlotNumber(wa.slotKey, slotInfo);
     const stage = stageLabel(slotInfo?.funnelStage || wa.funnelStage);
     const time = formatTime(slotInfo?.scheduledTimestamp, slot);
-
     const content = buildWhatsAppContent(wa);
-    const course = slotInfo?.course || wa.course || "CBA";
 
-    // Primary course row + TBM mirror row (TBM leads receive CBA content)
-    const coursesToWrite = course === "CBA" ? ["CBA", "TBM"] : [course];
-
-    for (const targetCourse of coursesToWrite) {
-      await sheet.addRow([
-        targetCourse,
-        stage,
-        String(day),
-        String(slot),
-        time,
-        "", // Score From
-        "", // Score To
-        content,
-        `${wa.calendarId}::${wa.slotKey}::${targetCourse}` // hidden dedupe marker in col I
-      ]);
-      console.log(`   ✅ WhatsApp campaign ${wa.slotKey} → Messages tab (${targetCourse})`);
+    let course = String(slotInfo?.course || wa.course || "").trim().toUpperCase();
+    if (!course) {
+      if (String(wa.slotKey || "").toLowerCase().includes("dgm")) course = "DGM";
+      else if (String(wa.slotKey || "").toLowerCase().includes("tbm")) course = "TBM";
+      else course = "CBA";
     }
+
+    const rows = await sheet.getRows();
+    const existingRow = rows.find((r) => {
+      const c = String(r.get("Course") || r._rawData?.[0] || "").trim().toUpperCase();
+      const d = String(r.get("Day") || r._rawData?.[2] || "").trim();
+      const s = String(r.get("Slot") || r._rawData?.[3] || "").trim();
+      return c === course && d === String(day) && s === String(slot);
+    });
+
+    if (existingRow) {
+      existingRow.set("Stage", stage);
+      existingRow.set("Time", time);
+      existingRow.set("Content", content);
+      await existingRow.save();
+      console.log(`   🔄 Updated WhatsApp campaign in Messages tab for ${course} Day ${day} Slot ${slot}`);
+    } else {
+      await sheet.addRow({
+        Course: course,
+        Stage: stage,
+        Day: String(day),
+        Slot: String(slot),
+        Time: time,
+        "Score From": "",
+        "Score To": "",
+        Content: content,
+      });
+      console.log(`   ✅ Added WhatsApp campaign to Messages tab for ${course} Day ${day} Slot ${slot}`);
+    }
+
     return { written: true };
   } catch (err) {
     console.error(`   ❌ Excel write failed (WhatsApp ${wa.slotKey}):`, err.message);
@@ -158,47 +233,54 @@ async function writeWhatsAppCampaign(wa, calendar) {
 
 /**
  * Writes an approved Email campaign to the "Email Messages" tab.
- * Course column is now filled (CBA/DGM) — TBM leads receive the CBA rows
- * (mirror rows), per the business decision.
+ * Writes ONLY the exact approved course without copy-pasting to other courses.
  */
 async function writeEmailCampaign(email, calendar) {
   try {
     const sheet = await ensureTab("Email Messages", EMAIL_HEADERS);
 
-    const rows = await sheet.getRows();
-    const dup = rows.some((r) =>
-      r._rawData && r._rawData.join("|").includes(`${email.calendarId}::${email.slotKey}`)
-    );
-    if (dup) {
-      console.log(`   ⏭️  Email campaign ${email.slotKey} already in Excel — skip`);
-      return { written: false, reason: "duplicate" };
-    }
-
     const slotInfo = findSlotInfo(calendar, "email", email.slotKey);
     const day = slotInfo?.scheduledDay || 1;
-    const slot = slotInfo?.slot || 1;
+    const slot = resolveSlotNumber(email.slotKey, slotInfo);
     const stage = stageLabel(slotInfo?.funnelStage || email.funnelStage);
     const time = formatTime(slotInfo?.scheduledTimestamp, slot);
-
     const content = buildEmailContent(email);
-    const course = slotInfo?.course || email.course || "CBA";
 
-    // Primary course row + TBM mirror row (TBM leads receive CBA content)
-    const coursesToWrite = course === "CBA" ? ["CBA", "TBM"] : [course];
-
-    for (const targetCourse of coursesToWrite) {
-      await sheet.addRow([
-        targetCourse,
-        stage,
-        String(day),
-        String(slot),
-        time,
-        email.subject || "",
-        content,
-        `${email.calendarId}::${email.slotKey}::${targetCourse}` // hidden dedupe marker in col H
-      ]);
-      console.log(`   ✅ Email campaign ${email.slotKey} → Email Messages tab (${targetCourse})`);
+    let course = String(slotInfo?.course || email.course || "").trim().toUpperCase();
+    if (!course) {
+      if (String(email.slotKey || "").toLowerCase().includes("dgm")) course = "DGM";
+      else if (String(email.slotKey || "").toLowerCase().includes("tbm")) course = "TBM";
+      else course = "CBA";
     }
+
+    const rows = await sheet.getRows();
+    const existingRow = rows.find((r) => {
+      const c = String(r.get("Course") || r._rawData?.[0] || "").trim().toUpperCase();
+      const d = String(r.get("Day") || r._rawData?.[2] || "").trim();
+      const s = String(r.get("Slot") || r._rawData?.[3] || "").trim();
+      return c === course && d === String(day) && s === String(slot);
+    });
+
+    if (existingRow) {
+      existingRow.set("Stage", stage);
+      existingRow.set("Time", time);
+      existingRow.set("Subject", email.subject || "");
+      existingRow.set("Content", content);
+      await existingRow.save();
+      console.log(`   🔄 Updated Email campaign in Email Messages tab for ${course} Day ${day} Slot ${slot}`);
+    } else {
+      await sheet.addRow({
+        Course: course,
+        Stage: stage,
+        Day: String(day),
+        Slot: String(slot),
+        Time: time,
+        Subject: email.subject || "",
+        Content: content,
+      });
+      console.log(`   ✅ Added Email campaign to Email Messages tab for ${course} Day ${day} Slot ${slot}`);
+    }
+
     return { written: true };
   } catch (err) {
     console.error(`   ❌ Excel write failed (Email ${email.slotKey}):`, err.message);

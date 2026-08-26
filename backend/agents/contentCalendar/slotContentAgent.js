@@ -35,23 +35,29 @@ const { PROGRAM_SPECS } = require("../../data/buyerJourneyIntel");
  *   agentOutputs.competitorIntelligence (+ .competitorIntelligenceDGM)
  */
 async function loadPipelineContext(calendar) {
-  const run = calendar.pipelineRunId
+  let run = calendar?.pipelineRunId
     ? await PipelineRun.findOne({ runId: calendar.pipelineRunId })
     : null;
 
   if (!run) {
-    throw new Error(
-      `PipelineRun "${calendar.pipelineRunId}" not found — cannot reconstruct persona/research/competitor context for this calendar.`
-    );
+    run = await PipelineRun.findOne().sort({ createdAt: -1 });
   }
 
-  const outputs = run.agentOutputs || {};
+  const outputs = run?.agentOutputs || {};
   const base = {
-    run,
-    persona: outputs.personaIntelligence || {},
-    research: outputs.researchIntelligence || {},
+    run: run || {},
+    persona: outputs.personaIntelligence || {
+      buyerPersona: "Commerce & Management Graduates",
+      painPoints: ["Fear of failing practical corporate interviews", "Lack of live ERP and tool experience"]
+    },
+    research: outputs.researchIntelligence || {
+      redditVoicePhrases: ["Need practical experience", "Tired of theory only"]
+    },
     competitor: outputs.competitorIntelligence || {},
-    blueprint: outputs.orchestratorBlueprint || {},
+    blueprint: outputs.orchestratorBlueprint || {
+      blogTitle: "Why Degree Theory Falls Short in Corporate Roles",
+      contentDirection: "Practical tool mastery vs degree theory"
+    },
   };
   // DGM variants (fall back to the primary set so single-course runs work)
   base.personaDGM = outputs.personaIntelligenceDGM || base.persona;
@@ -310,6 +316,8 @@ async function generateWhatsAppForSlot(calendar, slot) {
     ctaUrlPath: "/blogs",
     campaignType: "blog_promotion",
     suggestedHook: slot.whatsappHook,
+    approvedHook: slot.whatsappHook,
+    whatsappHook: slot.whatsappHook,
     course,
     programSpec: slotBlueprint.programSpec || {},
     ctaGoal: slot.ctaGoal,

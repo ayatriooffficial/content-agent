@@ -70,14 +70,52 @@ app.get("/", (req, res) => {
   });
 });
 
+const WhatsAppCampaign = require("./models/WhatsAppCampaign");
+const EmailCampaign = require("./models/EmailCampaign");
+const ContentCalendar = require("./models/ContentCalendar");
+const { writeWhatsAppCampaign, writeEmailCampaign } = require("./services/excelConnector");
+
+async function autoSyncApprovedToSheets() {
+  try {
+    console.log("📊 [Auto-Sync] Synchronizing approved/published campaigns to Google Sheets...");
+    const waList = await WhatsAppCampaign.find({ status: { $in: ["approved", "published"] } });
+    for (const wa of waList) {
+      let calendar = null;
+      if (wa.calendarId) {
+        calendar = wa.calendarId.startsWith("CAL_")
+          ? await ContentCalendar.findOne({ calendarId: wa.calendarId })
+          : await ContentCalendar.findById(wa.calendarId);
+      }
+      await writeWhatsAppCampaign(wa, calendar);
+    }
+
+    const emailList = await EmailCampaign.find({ status: { $in: ["approved", "published"] } });
+    for (const em of emailList) {
+      let calendar = null;
+      if (em.calendarId) {
+        calendar = em.calendarId.startsWith("CAL_")
+          ? await ContentCalendar.findOne({ calendarId: em.calendarId })
+          : await ContentCalendar.findById(em.calendarId);
+      }
+      await writeEmailCampaign(em, calendar);
+    }
+    console.log(`✅ [Auto-Sync] Successfully synced ${waList.length} WhatsApp and ${emailList.length} Email campaigns to Google Sheets.`);
+  } catch (err) {
+    console.error("⚠️ [Auto-Sync] Google Sheets sync error:", err.message);
+  }
+}
+
 // ─── Start server + scheduler ─────────────────────────────────────────────────
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   console.log(`🌐 Server listening on port ${PORT}`);
   console.log(`📡 Health check: http://localhost:${PORT}/`);
   console.log(`📊 Dashboard API: http://localhost:${PORT}/api/dashboard/stats`);
   
   // Start the autonomous scheduler
   startScheduler();
+
+  // Run initial automatic sync to Google Sheets
+  await autoSyncApprovedToSheets();
 });
 
 // ─── Graceful Shutdown (Releases Port on Ctrl+C) ──────────────────────────────

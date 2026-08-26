@@ -82,6 +82,10 @@ const emailSlotSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    slot: {
+      type: Number,
+      default: 1,
+    },
     channel: {
       type: String,
       default: "EMAIL",
@@ -148,6 +152,10 @@ const whatsappSlotSchema = new mongoose.Schema(
     scheduledTimestamp: {
       type: Date,
       required: true,
+    },
+    slot: {
+      type: Number,
+      default: 1,
     },
     channel: {
       type: String,

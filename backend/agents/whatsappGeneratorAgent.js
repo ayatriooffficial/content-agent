@@ -13,6 +13,69 @@ function joinList(value, fallback = "") {
 }
 
 /**
+ * Deterministic keyword bolding for WhatsApp (*word* format).
+ * Mirrors the email system's BOLD_KEYWORDS + word-boundary logic so
+ * short keywords (EY, PwC, GST, TDS, Meta) don't false-match inside
+ * words, and every bold is a clean single *keyword*.
+ */
+const BOLD_KEYWORDS = [
+  "Charters Union of Business", "Charters Union", "Certified Business Accountant",
+  "Digital Growth & Marketing", "Technology & Business Management",
+  "CBA™", "DGM™", "TBM™", "AI Career Engine", "7 countries", "7 Countries",
+  "100% In-Class Paid Internships", "in-class paid internships", "in-class paid internship",
+  "SAP S/4HANA", "TallyPrime", "GST", "TDS", "GA4", "Meta", "Google Ads", "ROAS",
+  "KPMG", "PwC", "EY", "Deloitte", "Saudi Aramco", "₹5,555", "₹16,000",
+  "No-Cost EMI", "scholarship", "Scholarship", "success fee", "Success Fee",
+  "97.7%", "92%", "98%", "95%", "placement rate", "Placement Rate",
+  "26.5 LPA", "24.5 LPA", "38.5 LPA", "CTC", "salary jump", "Salary Jump",
+  "3.05x", "3.05X", "KVS"
+];
+
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function boldWhatsAppKeywords(text) {
+  if (!text || typeof text !== "string") return "";
+
+  // Split into segments: existing *bold* spans stay untouched; only the
+  // plain-text segments get keyword bolding. This prevents re-bolding a
+  // keyword that already sits inside a bolded heading/span.
+  const segments = String(text).split(/(\*[^*]+\*)/g);
+  const sorted = [...BOLD_KEYWORDS].sort((a, b) => b.length - a.length);
+
+  const boldSegment = (seg) => {
+    let out = seg;
+    for (const kw of sorted) {
+      const needsWordBoundary = kw.replace(/[^a-zA-Z0-9]/g, "").length <= 4;
+      const escaped = escapeRegex(kw);
+      // Don't match if the keyword is adjacent to (or inside) an existing
+      // bold boundary on either side.
+      const pattern = needsWordBoundary
+        ? `(?<![\\w*])${escaped}(?![\\w*])`
+        : `${escaped}`;
+      const re = new RegExp(`(?<![\\w*])${pattern}(?![\\w*])`, "gi");
+      out = out.replace(re, `*${kw}*`);
+    }
+    return out;
+  };
+
+  return segments.map((p) => (p.startsWith("*") && p.endsWith("*") ? p : boldSegment(p))).join("");
+}
+
+/**
+ * Grammar guard: "in-class internship" is the correct idiomatic phrase.
+ * The LLM occasionally writes "on-class" / "on class" — normalize it so
+ * the typo never reaches the sheet or the phone.
+ */
+function normalizeGrammar(text) {
+  if (!text || typeof text !== "string") return text;
+  return String(text)
+    .replace(/\bon[- ]class\b/gi, "in-class")
+    .replace(/\bIn[- ]class\b/g, "In-class");
+}
+
+/**
  * STAGE-SPECIFIC COPYWRITING FRAMEWORK (buyer-journey grounded).
  * Each stage uses a proven direct-response formula + the journey file's
  * 7 counterparts (user action, touchpoints, emotional state, pain points,
@@ -67,17 +130,26 @@ async function whatsappGeneratorAgent(blueprint, persona, research, competitor, 
 
 You write the way top D2C education brands (upGrad, Great Learning, Masters' Union) do: human, specific, outcome-driven, never corporate-bland, never templated.
 
+=== CHANNEL SEPARATION (MANDATORY) ===
+Email already covers macro degree gaps, comparison tables, and formal scholarship essays.
+You MUST NOT write about those email-owned topics.
+You MUST write exclusively about WhatsApp's unique angle:
+- Stage 1 (Awareness): 1:1 Tool diagnostic & career roadmap or day-in-the-life weekly routine (practical tool labs vs theoretical lectures from LIVE WEBSITE DATA).
+- Stage 2 (Engagement): Single verified proof byte (placement metrics and named recruiters from LIVE WEBSITE DATA) or direct 1:1 practicing mentor access.
+- Stage 3 (Conversion): Plain-language batch logistics (start dates, evening/weekend flexibility, and starting EMI from LIVE WEBSITE DATA) & Round 1 seat reservation.
+
 ${websiteContextText}
 CRITICAL RULES:
 - Output ONLY valid JSON. No markdown, no prose, no code fences.
-- Keep the message concise, conversational, and mobile-friendly (under 160 words).
+- NO artificial quote blocks (>). Open directly with conversational counselor message.
+- Keep the message concise, conversational, and mobile-friendly (under 110 words).
 - Ground EVERY claim in the LIVE WEBSITE DATA above. NEVER invent programs, fees, stats, placements, or faculty.
-- Use the persona's real research voice (Quora/Reddit/Google phrases) — the message must sound like it was written for ONE person, not a broadcast.
+- Use only real URLs: ${websiteDomain}, ${websiteDomain}/career-path, ${websiteDomain}/about, ${websiteDomain}/apply.
 - Do NOT mention city/state names in the message body.
 - The message MUST follow the stage framework below. NEVER mix stages.
 - Write for the ${course} course ONLY: ${programBlock ? "use its program context (promise, objections, trust factors) for the topic; never reference the other course's concerns." : ""}`;
 
-  const userPrompt = `Write ONE WhatsApp campaign message for Charters Union promoting its real programs (CBA/DGM/TBM) to this specific audience.
+  const userPrompt = `Write ONE direct 1:1 WhatsApp campaign message for Charters Union promoting its real programs (CBA/DGM/TBM) to this specific audience.
 
 ${stageFramework(context.funnelStage, context.objective, context.slotKey)}
 
@@ -116,46 +188,43 @@ Emotional Gaps: ${joinList(competitor.emotionalGaps)}
 Blind Spots: ${joinList(competitor.competitorBlindSpots)}
 
 === WHATSAPP CONTEXT ===
-*** MANDATORY: THE APPROVED HOOK BELOW IS LAW ***
-Approved Hook (USE VERBATIM as the headline — do NOT invent a different topic): ${context.suggestedHook || ""}
-CTA Goal: ${context.ctaGoal || ""}
-PIPELINE CONTEXT:
-Persona: ${persona?.audienceCategory || "Accounting/Marketing Student/Graduate"} (Identity: ${persona?.identityBelief || ""})
-Audience Pain (their words): ${joinList(persona?.painPoints, "Feeling unprepared for real corporate jobs")}
-Hidden Insecurity: ${persona?.voiceOfCustomer?.hiddenInsecurity || persona?.psychologyLayer?.fearOfFailure || "Fear of failing interviews"}
-Urgent Trigger: ${joinList(persona?.urgentTriggers, "Approaching graduation with zero interview callbacks")}
-Real Student Voices (from research): ${normalizeList(research?.studentPainQuotes, 4).join("; ") || "Looking for practical skills that get hired"}
-Approved Hook (MUST use as inspiration/headline): "${context.approvedHook || blueprint.coreAngle || ""}"
+*** MANDATORY: APPROVED HOOK FROM ADMIN CALENDAR SELECTION ***
+Approved Hook (YOU MUST BUILD THE COUNSELOR OPENING AND BULLETS AROUND THIS EXACT HOOK): "${context.suggestedHook || context.approvedHook || context.whatsappHook || blueprint.coreAngle || ""}"
 ${blogTitle ? `Related Blog Angle: "${blogTitle}"` : ""}
 
 WHATSAPP FORMATTING RULES (MANDATORY):
 - Use WhatsApp formatting syntax ONLY:
   - Bold: *text* (for headings, key concepts, numbers, and CTAs)
   - Italics: _text_ (for emphasis, questions, and tone)
-  - Strikethrough: ~text~ (for comparisons/cross-outs)
-  - Monospace: \`\`\`text\`\`\`
-  - Block Quote: > text (for quote blocks and pain points)
-  - Bullet List: • *Topic:* description (or * / -)
+  - Bullet List: • *Topic:* description
 
-The "whatsappMessage" field MUST follow this exact visual layout:
-1. Header Greeting: "*{NAME} ji,*" (or "*{NAME},*")
-2. Pain Point Quote Block: A short 2 to 2.5 line quote block using "> " syntax describing the exact practical skills conflict.
-3. Bridge Line: "At Charters Union, we bridge the degree-to-corporate gap with zero friction:"
-4. Bold Section Heading: "*Why Top Recruiters Hire ${course}™ Graduates:*" (DO NOT use <u> or # headings — use *Bold* formatting)
-5. 3 Bullet Points: Each bullet must start with "• *Feature/Skill:* Description and real metrics."
-6. Closing Question in Italics: "_Would you like to check your AI Career-Readiness Score this week?_"
-7. Single-Line Footer:
-🌐 *Visit:* ${websiteDomain} | 📝 *Apply:* ${websiteDomain}/apply | 📞 *Call:* ${helplinePhone}
+The "whatsappMessage" field MUST follow this exact 7-part visual layout (MANDATORY, in order):
+1. INTRO: "*{NAME},*" — a warm personal greeting line (e.g. "Dear {NAME}," / "Hi {NAME},"). NOT just the bare name.
+2. BODY: 2 concise conversational sentences addressing the topic directly (NO quote block >).
+3. PROBLEM HEADING: a standalone bold section heading naming the exact pain (e.g. "*The Real Corporate Gap:*" / "*Why applications get rejected:*"). Dynamic per slot — NEVER write "Problem is this" or "Solution is this".
+4. POINTS HEADING: a standalone bold section heading introducing the key points below (e.g. "*Session Focus:*" / "*What's included:*"). Dynamic per slot.
+5. KEY POINTS: 2-3 bullets, each starting with "• *Topic:* Real practical detail" from LIVE WEBSITE DATA. Each bullet MUST pack a REAL number/fact (fees, placement %, CTC, salary jump, tools, recruiters, faculty, student name) — short but dense, ≤ 20 words each, covering: the core problem, the real fix, and a proof point.
+6. SOLUTION: introduced by a bold heading followed by 1-2 tight lines naming how Charters Union fixes this specific concern (grounded in LIVE WEBSITE DATA — tools, internships, placements, financing). The solution heading MUST be dynamic and vary per slot — NEVER repeat the same one across slots. Stage-appropriate examples:
+   - Awareness: "*How Charters Union closes this gap:*" / "*Where the fix starts:*" / "*What actually changes:*"
+   - Engagement: "*How our students bridge this:*" / "*The proof it works:*" / "*What placements look like:*"
+   - Conversion: "*How the numbers work for you:*" / "*How you can start:*" / "*Your next step, de-risked:*"
+   Never write a bare "Solution is..." — always a bold heading first.
+7. FOOTER: single-line:
+*Visit:* ${websiteDomain} | *Apply:* ${websiteDomain}/apply | *Call:* ${helplinePhone}
 
 Output EXACTLY this JSON structure:
 {
   "audienceSegment": "string",
-  "headline": "EXACTLY the Approved Hook above, verbatim — do not rephrase or change topic",
-  "quoteBlock": "string (the 2-line pain quote without >)",
-  "sectionHeading": "string (the bold section title, e.g. *Why Top Recruiters Hire ${course}™ Graduates:*)",
-  "bulletPoints": ["• *Topic:* description", "• *Topic:* description", "• *Topic:* description"],
-  "closingQuestion": "string (the italicized closing question)",
-  "whatsappMessage": "the FULL structured WhatsApp message incorporating greeting, quote bar >, bridge, bold section heading, bullets, closing question, and footer",
+  "headline": "string (the punchy headline)",
+  "intro": "string (warm personal greeting with {NAME})",
+  "counselorOpening": "string (conversational body, 2 sentences, no quote box)",
+  "problemHeading": "string (standalone bold section heading naming the exact pain, e.g. '*The Real Corporate Gap:*')",
+  "pointsHeading": "string (standalone bold section heading above the bullets, e.g. '*Session Focus:*')",
+  "bulletPoints": ["• *Topic:* Real practical detail", "• *Topic:* Real practical detail"],
+  "solutionHeading": "string (standalone bold heading before the solution, DYNAMIC per slot — e.g. '*How Charters Union closes this gap:*' / '*The proof it works:*' / '*How you can start:*'. NEVER the same heading across slots)",
+  "solution": "string (1-2 lines naming Charters Union's concrete fix, grounded in LIVE WEBSITE DATA)",
+  "closingQuestion": "string (the closing question or prompt)",
+  "whatsappMessage": "the FULL 7-part structured WhatsApp message: intro, body, problemHeading, pointsHeading, bullets, solutionHeading, solution, closing CTA, and single-line footer — in that exact order",
   "summary": "2 sentence summary of the WhatsApp strategy",
   "tone": "string",
   "wordCount": 75,
@@ -197,18 +266,26 @@ Output EXACTLY this JSON structure:
 
   console.log(`  [WhatsApp Generator Agent] ✅ Valid JSON parsed for slot ${context.slotKey || "?"} — headline: "${parsed.headline?.slice(0, 60)}"`);
 
+  // Deterministic keyword bolding + grammar guard on the final message.
+  const finalMessage = boldWhatsAppKeywords(normalizeGrammar(parsed.whatsappMessage || ""));
+
   return {
     campaignType: parsed.campaignType || context.campaignType || "blog_promotion",
     audienceSegment: parsed.audienceSegment || context.audienceCategory || persona.buyerPersona || "Accounting audience",
     headline: parsed.headline,
     opening: parsed.opening || "",
     body: parsed.body || "",
+    intro: parsed.intro || "",
+    problemHeading: parsed.problemHeading || "",
+    pointsHeading: parsed.pointsHeading || "",
+    solutionHeading: parsed.solutionHeading || "",
+    solution: parsed.solution || "",
     bulletPoints: normalizeList(parsed.bulletPoints, 3),
     ctaText: parsed.ctaText || context.ctaText || "Read the full article",
     ctaUrlPath: parsed.ctaUrlPath || context.ctaUrlPath || "/blogs",
     ctaReasoning: parsed.ctaReasoning || "",
     closing: parsed.closing || "",
-    whatsappMessage: parsed.whatsappMessage || "",
+    whatsappMessage: finalMessage,
     summary: parsed.summary || blogResult?.summary || blueprint.contentDirection || "",
     tone: parsed.tone || "clear and conversational",
     wordCount: parseInt(parsed.wordCount, 10) || 60,
@@ -226,3 +303,5 @@ Output EXACTLY this JSON structure:
 }
 
 module.exports = whatsappGeneratorAgent;
+module.exports.boldWhatsAppKeywords = boldWhatsAppKeywords;
+module.exports.normalizeGrammar = normalizeGrammar;

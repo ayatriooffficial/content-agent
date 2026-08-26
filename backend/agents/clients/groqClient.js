@@ -74,7 +74,10 @@ async function groqGenerate(systemPrompt, userPrompt, options = {}) {
           console.log(`  [Groq] ✅ ${model} | ~${result.split(" ").length} tokens out${useJson ? " (json)" : ""}`);
           return result;
         } catch (error) {
-          const isRateLimit = error.status === 429 || (error.message || "").includes("rate limit");
+          // 413 = "Request too large" (tokens-per-minute ceiling on free tier).
+          // Treat it like a rate limit so we retry/rotate models instead of
+          // aborting the whole generation.
+          const isRateLimit = error.status === 429 || error.status === 413 || (error.message || "").includes("rate limit");
           const isJsonRejection = useJson && (
             error.status === 400 ||
             (error.message || "").includes("json_validate_failed") ||
