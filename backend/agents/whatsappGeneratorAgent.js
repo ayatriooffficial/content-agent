@@ -146,6 +146,7 @@ CRITICAL RULES:
 - Ground EVERY claim in the LIVE WEBSITE DATA above. NEVER invent programs, fees, stats, placements, or faculty.
 - Use only real URLs: ${websiteDomain}, ${websiteDomain}/career-path, ${websiteDomain}/about, ${websiteDomain}/apply.
 - Do NOT mention city/state names in the message body.
+- NEVER write a real person's name anywhere except the INTRO greeting line which uses the {NAME} placeholder. The BODY must never contain any person's name (no "Anirban,", no "Suman", no student names, no faculty names as a greeting). Use "you" / "your" instead.
 - The message MUST follow the stage framework below. NEVER mix stages.
 - Write for the ${course} course ONLY: ${programBlock ? "use its program context (promise, objections, trust factors) for the topic; never reference the other course's concerns." : ""}`;
 
@@ -197,19 +198,18 @@ WHATSAPP FORMATTING RULES (MANDATORY):
   - Bold: *text* (for headings, key concepts, numbers, and CTAs)
   - Italics: _text_ (for emphasis, questions, and tone)
   - Bullet List: • *Topic:* description
+- BOLD the important keywords EVERYWHERE — in the intro, the bullets, the solution, and the closing question. Let the context guide you: tools (*SAP S/4HANA*, *TallyPrime*, *GST*, *GA4*), numbers/stats (*95%*, *3.05x*, *42 LPA*, *₹5,555*), outcomes (*placement rate*, *salary jump*), program names (*CBA™*, *DGM™*), recruiters (*KPMG*, *Deloitte*), USPs (*100% In-Class Paid Internships*, *7 countries*). The reader should see bolded key phrases in EVERY section — never a long stretch of plain text. Aim for 2-4 bolded phrases in the intro, 1-2 per bullet, and 1-2 per solution point.
 
-The "whatsappMessage" field MUST follow this exact 7-part visual layout (MANDATORY, in order):
+The "whatsappMessage" field MUST follow this exact 6-part visual layout (MANDATORY, in order). There is exactly ONE heading before the bullets and ONE heading before the solution — NEVER stack two headings back-to-back:
 1. INTRO: "*{NAME},*" — a warm personal greeting line (e.g. "Dear {NAME}," / "Hi {NAME},"). NOT just the bare name.
-2. BODY: 2 concise conversational sentences addressing the topic directly (NO quote block >).
-3. PROBLEM HEADING: a standalone bold section heading naming the exact pain (e.g. "*The Real Corporate Gap:*" / "*Why applications get rejected:*"). Dynamic per slot — NEVER write "Problem is this" or "Solution is this".
-4. POINTS HEADING: a standalone bold section heading introducing the key points below (e.g. "*Session Focus:*" / "*What's included:*"). Dynamic per slot.
-5. KEY POINTS: 2-3 bullets, each starting with "• *Topic:* Real practical detail" from LIVE WEBSITE DATA. Each bullet MUST pack a REAL number/fact (fees, placement %, CTC, salary jump, tools, recruiters, faculty, student name) — short but dense, ≤ 20 words each, covering: the core problem, the real fix, and a proof point.
-6. SOLUTION: introduced by a bold heading followed by 1-2 tight lines naming how Charters Union fixes this specific concern (grounded in LIVE WEBSITE DATA — tools, internships, placements, financing). The solution heading MUST be dynamic and vary per slot — NEVER repeat the same one across slots. Stage-appropriate examples:
+2. BODY: 150–200 characters total (about 2-3 short lines on mobile) — HARD LIMIT, never longer. Opens with a hook AND weaves the pain/concern directly INTO the sentences — NO separate pain heading before or inside the body. The pain lives inside the body text, never in its own heading. Bold 2-4 key phrases inside the body.
+3. POINTS HEADING: ONE standalone bold section heading that introduces the bullets below it. Dynamic per slot — NEVER repeat the same heading across slots, NEVER write "Problem is this". Choose the heading from the LIVE WEBSITE DATA topic for this slot (the tools tested, the batch logistics, what's included, etc.).
+4. KEY POINTS: 2-3 bullets, each starting with "• *Topic:* Real practical detail" from LIVE WEBSITE DATA. Each bullet MUST pack a REAL number/fact from the LIVE WEBSITE DATA provided above (fees, placement %, CTC, salary jump, tools, recruiters, faculty, student name) — short but dense, ≤ 20 words each. Use whatever numbers/facts are in the LIVE WEBSITE DATA — do NOT reuse the same ones across slots or invent new ones.
+5. SOLUTION: a bold heading followed by 2-3 BULLETED points — the solution MUST be bullets, NOT a paragraph. Each bullet "• *Topic:* fix detail" names ONE concrete way Charters Union solves the pain (curriculum, tools, internships, placements, financing, mentorship), grounded in the LIVE WEBSITE DATA. Choose DIFFERENT proof points per slot so no two slots repeat the same facts. The solution heading MUST clearly signal an ANSWER/SOLUTION to the reader — it must NOT sound like a problem, gap, or neutral statement (avoid "Where the skill bridge begins", "What corporate interviews test", "The gap", "The problem"). It should sound like the resolution. Stage-appropriate examples (structure only — pick wording to match the slot):
    - Awareness: "*How Charters Union closes this gap:*" / "*Where the fix starts:*" / "*What actually changes:*"
-   - Engagement: "*How our students bridge this:*" / "*The proof it works:*" / "*What placements look like:*"
+   - Engagement: "*The proof it works:*" / "*What placements look like:*" / "*How students get hired:*"
    - Conversion: "*How the numbers work for you:*" / "*How you can start:*" / "*Your next step, de-risked:*"
-   Never write a bare "Solution is..." — always a bold heading first.
-7. FOOTER: single-line:
+6. FOOTER: single-line:
 *Visit:* ${websiteDomain} | *Apply:* ${websiteDomain}/apply | *Call:* ${helplinePhone}
 
 Output EXACTLY this JSON structure:
@@ -217,14 +217,13 @@ Output EXACTLY this JSON structure:
   "audienceSegment": "string",
   "headline": "string (the punchy headline)",
   "intro": "string (warm personal greeting with {NAME})",
-  "counselorOpening": "string (conversational body, 2 sentences, no quote box)",
-  "problemHeading": "string (standalone bold section heading naming the exact pain, e.g. '*The Real Corporate Gap:*')",
-  "pointsHeading": "string (standalone bold section heading above the bullets, e.g. '*Session Focus:*')",
-  "bulletPoints": ["• *Topic:* Real practical detail", "• *Topic:* Real practical detail"],
-  "solutionHeading": "string (standalone bold heading before the solution, DYNAMIC per slot — e.g. '*How Charters Union closes this gap:*' / '*The proof it works:*' / '*How you can start:*'. NEVER the same heading across slots)",
-  "solution": "string (1-2 lines naming Charters Union's concrete fix, grounded in LIVE WEBSITE DATA)",
+  "counselorOpening": "string (conversational body, 2-4 lines max, hook + pain woven INTO the sentences, NO separate pain heading)",
+  "pointsHeading": "string (ONE standalone bold section heading above the bullets, chosen to match this slot's LIVE WEBSITE DATA topic)",
+  "bulletPoints": ["• *Topic:* real fact from LIVE WEBSITE DATA", "• *Topic:* real fact from LIVE WEBSITE DATA"],
+  "solutionHeading": "string (standalone bold heading before the solution, DYNAMIC per slot — NEVER the same heading across slots)",
+  "solutionPoints": ["• *Topic:* fix detail", "• *Topic:* fix detail", "• *Topic:* fix detail"],
   "closingQuestion": "string (the closing question or prompt)",
-  "whatsappMessage": "the FULL 7-part structured WhatsApp message: intro, body, problemHeading, pointsHeading, bullets, solutionHeading, solution, closing CTA, and single-line footer — in that exact order",
+  "whatsappMessage": "the FULL 6-part structured WhatsApp message: intro, body, pointsHeading, bullets, solutionHeading, solutionPoints (bulleted), closing CTA, and single-line footer — in that exact order",
   "summary": "2 sentence summary of the WhatsApp strategy",
   "tone": "string",
   "wordCount": 75,
@@ -276,10 +275,10 @@ Output EXACTLY this JSON structure:
     opening: parsed.opening || "",
     body: parsed.body || "",
     intro: parsed.intro || "",
-    problemHeading: parsed.problemHeading || "",
     pointsHeading: parsed.pointsHeading || "",
     solutionHeading: parsed.solutionHeading || "",
-    solution: parsed.solution || "",
+    solution: Array.isArray(parsed.solutionPoints) ? parsed.solutionPoints.join("\n") : (parsed.solution || ""),
+    solutionPoints: normalizeList(parsed.solutionPoints, 3),
     bulletPoints: normalizeList(parsed.bulletPoints, 3),
     ctaText: parsed.ctaText || context.ctaText || "Read the full article",
     ctaUrlPath: parsed.ctaUrlPath || context.ctaUrlPath || "/blogs",

@@ -151,15 +151,16 @@ function buildWhatsAppContent(wa) {
     if (wa.intro) parts.push(wa.intro);
     if (wa.opening) parts.push(wa.opening);
     if (wa.body) parts.push(wa.body);
-    // PROBLEM HEADING: dynamic per-slot heading naming the pain (never "Problem is this").
-    if (wa.problemHeading) parts.push(wa.problemHeading);
     if (Array.isArray(wa.bulletPoints) && wa.bulletPoints.length) {
       parts.push(wa.pointsHeading ? wa.pointsHeading : "");
       parts.push(wa.bulletPoints.map((b) => `• ${b}`).join("\n"));
     }
-    // SOLUTION HEADING: dynamic bold heading before the solution line.
+    // SOLUTION HEADING: dynamic bold heading before the solution bullets.
     if (wa.solutionHeading) parts.push(wa.solutionHeading);
-    if (wa.solution) parts.push(wa.solution);
+    const solutionPoints = Array.isArray(wa.solutionPoints) && wa.solutionPoints.length
+      ? wa.solutionPoints.map((s) => `• ${s}`).join("\n")
+      : wa.solution || "";
+    if (solutionPoints) parts.push(solutionPoints);
     if (wa.ctaText) parts.push(`${wa.ctaText}${wa.ctaUrlPath ? ` — ${wa.ctaUrlPath}` : ""}`);
     if (wa.closing) parts.push(wa.closing);
     content = parts.filter(Boolean).join("\n\n");
@@ -169,7 +170,36 @@ function buildWhatsAppContent(wa) {
   const { boldWhatsAppKeywords, normalizeGrammar } = require("../agents/whatsappGeneratorAgent");
   content = boldWhatsAppKeywords(normalizeGrammar(content));
 
+  content = stripBodyNames(content);
+
   return normalizeWhatsAppGreeting(content);
+}
+
+/**
+ * Defensive guard: removes a baked-in real person's name that the AI wrote
+ * at the start of a BODY line (e.g. "Anirban, did you know...") — the name
+ * is only allowed in the {name} greeting on line 1.
+ */
+function stripBodyNames(content) {
+  if (!content || typeof content !== "string") return content;
+  const lines = String(content).split(/\r?\n/);
+  // Keep line 1 (the greeting) untouched — it's normalized to {name} later.
+  for (let i = 1; i < lines.length; i++) {
+    const t = lines[i].trim();
+    // "Anirban, did you know..." / "Anirban, ..." / "*Anirban,* ..."
+    // Guard: the "name" must be a plausible first name (2-20 letters) and the
+    // remainder must not look like a URL/footer (so "Visit: https://..." stays).
+    const m = t.match(/^(\*?)([A-Z][a-zA-Z.'-]{1,19})\*?\s*[,:][ \t]+(.+)$/);
+    if (m) {
+      const name = m[2];
+      const rest = m[3].trim();
+      // Skip if it's a section heading ("Visit:", "Apply:") or a URL line.
+      if (/^(https?:\/\/|www\.)/i.test(rest)) continue;
+      if (/^(visit|apply|call|reply|explore|want|ready|would|are|is|does)\b/i.test(name)) continue;
+      lines[i] = rest.charAt(0).toUpperCase() + rest.slice(1);
+    }
+  }
+  return lines.join("\n");
 }
 
 /**
