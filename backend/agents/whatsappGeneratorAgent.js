@@ -38,10 +38,13 @@ function escapeRegex(s) {
 function boldWhatsAppKeywords(text) {
   if (!text || typeof text !== "string") return "";
 
-  // Split into segments: existing *bold* spans stay untouched; only the
-  // plain-text segments get keyword bolding. This prevents re-bolding a
-  // keyword that already sits inside a bolded heading/span.
-  const segments = String(text).split(/(\*[^*]+\*)/g);
+  // Split into segments: existing *bold* spans, *_bold+italic_* spans, and
+  // * *_`Keyword`:_* subheading units stay untouched — only the plain-text
+  // segments get keyword bolding. This prevents re-bolding a keyword that
+  // already sits inside a heading or subheading (nested stars break WhatsApp).
+  // Note: "* " (bullet star + space) must NOT count as a bold span — a bold
+  // span never has a space right after its opening star.
+  const segments = String(text).split(/(\*[^*\s][^*]*\*)/g);
   const sorted = [...BOLD_KEYWORDS].sort((a, b) => b.length - a.length);
 
   const boldSegment = (seg) => {
@@ -60,7 +63,18 @@ function boldWhatsAppKeywords(text) {
     return out;
   };
 
-  return segments.map((p) => (p.startsWith("*") && p.endsWith("*") ? p : boldSegment(p))).join("");
+  const isProtectedSpan = (p) => {
+    const t = String(p || "");
+    return (t.startsWith("*") && t.endsWith("*")) || (t.startsWith("*_") && t.endsWith("_*"));
+  };
+
+  let result = segments.map((p) => (isProtectedSpan(p) ? p : boldSegment(p))).join("");
+
+  // Cleanup pass: collapse "**A*, *B**" artifacts from adjacent bolded keywords
+  // into clean single "*A* / *B*" spans.
+  result = result.replace(/\*\*([^*]+?)\*/g, "*$1").replace(/\*([^*]+?)\*\*/g, "*$1*");
+
+  return result;
 }
 
 /**
@@ -85,10 +99,11 @@ function stageFramework(funnelStage, objective, slotKey) {
   const stage = funnelStage || "1_AWARENESS";
   const frameworks = {
     "1_AWARENESS": `STAGE: Awareness (${stage})
-COPYWRITING FRAMEWORK: PAS — Problem → Agitate → (curiosity gap, NO solution yet)
+COPYWRITING FRAMEWORK: PAS — Problem → Agitate → (curiosity gap, NO solution reveal, NO enrollment push)
 - Open with the audience's exact problem in THEIR OWN WORDS (from Quora/Reddit/Google research below).
 - Agitate: make the pain feel real and specific (family pressure, wasted years, salary shame).
-- END with a curiosity gap that makes them want the answer. Do NOT reveal the solution or push enrollment.
+- PLANT THE PRODUCT: include ONE tight line that names the Charters Union program for this course (e.g. the CBA™ or DGM™ program) and the specific gap it exists to close — so the lead knows WHO is talking to them, without any sales pitch. This line comes after the pain, before the points heading.
+- END with a curiosity gap that makes them want the answer. Do NOT reveal the solution, fees, or push enrollment.
 - Tone: empathetic, educational, a mentor who "gets it".`,
     "2_ENGAGEMENT": `STAGE: Engagement (${stage})
 COPYWRITING FRAMEWORK: Proof + Before/After (AIDA Interest/Desire)
@@ -195,20 +210,20 @@ ${blogTitle ? `Related Blog Angle: "${blogTitle}"` : ""}
 
 WHATSAPP FORMATTING RULES (MANDATORY):
 - Use WhatsApp formatting syntax ONLY:
-  - Bold: *text* (for headings, key concepts, numbers, and CTAs)
-  - Italics: _text_ (for emphasis, questions, and tone)
-  - Bullet List: • *Topic:* description
-- BOLD the important keywords EVERYWHERE — in the intro, the bullets, the solution, and the closing question. Let the context guide you: tools (*SAP S/4HANA*, *TallyPrime*, *GST*, *GA4*), numbers/stats (*95%*, *3.05x*, *42 LPA*, *₹5,555*), outcomes (*placement rate*, *salary jump*), program names (*CBA™*, *DGM™*), recruiters (*KPMG*, *Deloitte*), USPs (*100% In-Class Paid Internships*, *7 countries*). The reader should see bolded key phrases in EVERY section — never a long stretch of plain text. Aim for 2-4 bolded phrases in the intro, 1-2 per bullet, and 1-2 per solution point.
+  - ONLY single-star bold, like *bold* (one asterisk on each side). NO underscore italics, NO backtick monospace, NO combined asterisk+underscore. Plain bold only.
+  - Section headings use plain bold ending with a colon, like *Heading Text:*. NEVER use underscores inside or around the heading.
+  - Bullet lines use plain bold for the keyword only, like * *Topic Keyword* :* short detail. That is: one star + space, bold keyword, space + colon, space, plain detail. NEVER use backticks, NEVER use underscores.
+  - Bold important keywords EVERYWHERE — in the intro, the bullets, the solution, and the closing question. Let the context guide you: tools, numbers/stats, outcomes, program names (CBA™/DGM™/TBM™ with full forms), recruiters, USPs. The reader should see bolded key phrases in EVERY section — never a long stretch of plain text.
+  - Use the FULL course form somewhere in the body when first naming the program, e.g. "*CBA™ (Certified Business Accountant)*", "*DGM™ (Digital Growth & Marketing)*", "*TBM™ (Technology & Business Management)*". The acronym alone is not enough for a reader who doesn't know it.
+- These are STRUCTURE patterns — the actual heading words and bullet keywords MUST be chosen fresh per slot from the LIVE WEBSITE DATA. NEVER copy a heading or keyword from this prompt into the output.
+- The body carries the story. The bullets carry facts. Bullets NEVER carry the story — each bullet states a single, short, factual point.
 
 The "whatsappMessage" field MUST follow this exact 6-part visual layout (MANDATORY, in order). There is exactly ONE heading before the bullets and ONE heading before the solution — NEVER stack two headings back-to-back:
 1. INTRO: "*{NAME},*" — a warm personal greeting line (e.g. "Dear {NAME}," / "Hi {NAME},"). NOT just the bare name.
-2. BODY: 150–200 characters total (about 2-3 short lines on mobile) — HARD LIMIT, never longer. Opens with a hook AND weaves the pain/concern directly INTO the sentences — NO separate pain heading before or inside the body. The pain lives inside the body text, never in its own heading. Bold 2-4 key phrases inside the body.
-3. POINTS HEADING: ONE standalone bold section heading that introduces the bullets below it. Dynamic per slot — NEVER repeat the same heading across slots, NEVER write "Problem is this". Choose the heading from the LIVE WEBSITE DATA topic for this slot (the tools tested, the batch logistics, what's included, etc.).
-4. KEY POINTS: 2-3 bullets, each starting with "• *Topic:* Real practical detail" from LIVE WEBSITE DATA. Each bullet MUST pack a REAL number/fact from the LIVE WEBSITE DATA provided above (fees, placement %, CTC, salary jump, tools, recruiters, faculty, student name) — short but dense, ≤ 20 words each. Use whatever numbers/facts are in the LIVE WEBSITE DATA — do NOT reuse the same ones across slots or invent new ones.
-5. SOLUTION: a bold heading followed by 2-3 BULLETED points — the solution MUST be bullets, NOT a paragraph. Each bullet "• *Topic:* fix detail" names ONE concrete way Charters Union solves the pain (curriculum, tools, internships, placements, financing, mentorship), grounded in the LIVE WEBSITE DATA. Choose DIFFERENT proof points per slot so no two slots repeat the same facts. The solution heading MUST clearly signal an ANSWER/SOLUTION to the reader — it must NOT sound like a problem, gap, or neutral statement (avoid "Where the skill bridge begins", "What corporate interviews test", "The gap", "The problem"). It should sound like the resolution. Stage-appropriate examples (structure only — pick wording to match the slot):
-   - Awareness: "*How Charters Union closes this gap:*" / "*Where the fix starts:*" / "*What actually changes:*"
-   - Engagement: "*The proof it works:*" / "*What placements look like:*" / "*How students get hired:*"
-   - Conversion: "*How the numbers work for you:*" / "*How you can start:*" / "*Your next step, de-risked:*"
+2. BODY: 100–110 characters total (about 1-2 short lines on mobile) — HARD LIMIT, never longer. Opens with a hook AND weaves the pain/concern directly INTO the sentences. Include ONE product-planting line that names the program with its FULL FORM (e.g. "*CBA™ (Certified Business Accountant)*"). Bold 1-2 key phrases inside the body. NO separate pain heading before or inside the body.
+3. POINTS HEADING: ONE standalone *Heading Text:* (plain bold, ending with colon). Dynamic per slot — NEVER repeat the same heading across slots, NEVER write "Problem is this". Choose the heading from the LIVE WEBSITE DATA topic for this slot.
+4. KEY POINTS: EXACTLY 3 bullets — each * *Topic Keyword* :* short detail (plain bold keyword, no backticks, no underscores). Each bullet is ≤ 50 characters, ONE short factual point, NO storytelling. Each bullet MUST pack a REAL number/fact from the LIVE WEBSITE DATA (fees, placement %, CTC, salary jump, tools, recruiters, faculty, student name). Use whatever numbers/facts are in the LIVE WEBSITE DATA — do NOT reuse the same ones across slots.
+5. SOLUTION: *Heading Text:* (plain bold, signals an ANSWER) followed by EXACTLY 3 bullets — same format as the points. Each bullet ≤ 50 characters, ONE short factual point, NO storytelling. Names ONE concrete way Charters Union solves the pain (curriculum, tools, internships, placements, financing, mentorship), grounded in LIVE WEBSITE DATA. Choose DIFFERENT proof points per slot so no two slots repeat the same facts. The solution heading MUST clearly signal an ANSWER/SOLUTION — it must NOT sound like a problem, gap, or neutral statement.
 6. FOOTER: single-line:
 *Visit:* ${websiteDomain} | *Apply:* ${websiteDomain}/apply | *Call:* ${helplinePhone}
 
@@ -217,13 +232,13 @@ Output EXACTLY this JSON structure:
   "audienceSegment": "string",
   "headline": "string (the punchy headline)",
   "intro": "string (warm personal greeting with {NAME})",
-  "counselorOpening": "string (conversational body, 2-4 lines max, hook + pain woven INTO the sentences, NO separate pain heading)",
-  "pointsHeading": "string (ONE standalone bold section heading above the bullets, chosen to match this slot's LIVE WEBSITE DATA topic)",
-  "bulletPoints": ["• *Topic:* real fact from LIVE WEBSITE DATA", "• *Topic:* real fact from LIVE WEBSITE DATA"],
-  "solutionHeading": "string (standalone bold heading before the solution, DYNAMIC per slot — NEVER the same heading across slots)",
-  "solutionPoints": ["• *Topic:* fix detail", "• *Topic:* fix detail", "• *Topic:* fix detail"],
+  "counselorOpening": "string (conversational body, 100-110 chars max, hook + pain woven INTO the sentences, product-planting line with full course form, 1-2 bolded phrases, plain *bold* only — no italic, no code, no nested stars)",
+  "pointsHeading": "string (ONE standalone *Heading Text:* plain bold heading above the bullets, ending with colon, chosen to match this slot's LIVE WEBSITE DATA topic)",
+  "bulletPoints": ["* *Topic Keyword* :* short fact from LIVE WEBSITE DATA", "* *Topic Keyword* :* short fact from LIVE WEBSITE DATA", "* *Topic Keyword* :* short fact from LIVE WEBSITE DATA"],
+  "solutionHeading": "string (standalone *Heading Text:* plain bold heading, DYNAMIC per slot — NEVER the same heading across slots, must signal an ANSWER/SOLUTION)",
+  "solutionPoints": ["* *Topic Keyword* :* fix detail", "* *Topic Keyword* :* fix detail", "* *Topic Keyword* :* fix detail"],
   "closingQuestion": "string (the closing question or prompt)",
-  "whatsappMessage": "the FULL 6-part structured WhatsApp message: intro, body, pointsHeading, bullets, solutionHeading, solutionPoints (bulleted), closing CTA, and single-line footer — in that exact order",
+  "whatsappMessage": "the FULL 6-part structured WhatsApp message: intro, body, pointsHeading, bullets, solutionHeading, solutionPoints (bulleted), closing CTA, and single-line footer — in that exact order. Awareness messages include ONE product-planting line naming the program after the body.",
   "summary": "2 sentence summary of the WhatsApp strategy",
   "tone": "string",
   "wordCount": 75,
